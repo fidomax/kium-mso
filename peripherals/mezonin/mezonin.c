@@ -479,45 +479,32 @@ void Mez_TU_init(mezonin *MezStruct)
 void Mez_TT_init(mezonin *MezStruct)
 {
 	int PWM_period, PWM_dutyCycle;
-	unsigned int PWM_mode;
 	
 	int j;
-//	for (i=0;i<4;i++)
-//		{
 	for (j = 0; j < 4; j++) {
 		Mezonin_TT[MezStruct->Mez_ID - 1].Channel[j].OldValue = 0xFF;
 	}
-//		}
 	
 	AT91C_BASE_PMC ->PMC_PCER = 1 << AT91C_ID_PWMC; //Enable PMC для PWM
 	AT91C_BASE_PMC ->PMC_PCER = 1 << AT91C_ID_PIOB; //Enable PMC для PIOB
-//  AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_TC0;  //Enable PMC для TC1
 	AT91C_BASE_PMC ->PMC_PCER = 1 << MezStruct->TC_ID;
 	
 	AT91C_BASE_PWMC ->PWMC_DIS = MezStruct->PWM_ID;
 	while ((AT91C_BASE_PWMC ->PWMC_SR & MezStruct->PWM_ID) == MezStruct->PWM_ID)
 		;
 	
-//  AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, A1_0 | A1_1);
-	//A1_0,  A1_1 назначены как Output
 	AT91F_PIO_CfgOutput(MezStruct->LineA0.PIO_ctrl_ptr, MezStruct->LineA0.PIO_Line | MezStruct->LineA1.PIO_Line);
 	
-//  AT91F_PIO_CfgPeriph (AT91C_BASE_PIOA, FIN_1, 0); //назначение линии PA18 для PWM0 (1FIN)
 	AT91F_PIO_CfgPeriph(MezStruct->LineFIN.PIO_ctrl_ptr, MezStruct->LineFIN.PIO_Line, 0);
 	//Конфигурация PWM канала 1FIN, частота 4 МГц
-	PWM_mode = AT91C_PWMC_CPRE_MCK;
 	PWM_period = 12;
 	PWM_dutyCycle = PWM_period / 2;
-	
-//  AT91F_PWMC_CfgChannel(AT91C_BASE_PWMC, 0, PWM_mode, PWM_period, PWM_dutyCycle);
-//  AT91F_PWMC_CfgChannel(AT91C_BASE_PWMC, MezStruct.PWM_Number, PWM_mode, PWM_period, PWM_dutyCycle);
 	
 	PWMC_ConfigureClocks(0, 0, MCK); // запись 0 в регистр PWM_MR
 	PWMC_ConfigureChannel(MezStruct->PWM_Number, 0, 0, 0); // запись 0 в регистр PWM_CMR 1-го канала
 	PWMC_SetPeriod(MezStruct->PWM_Number, PWM_period); // Установка периода для 1-го канала
 	PWMC_SetDutyCycle(MezStruct->PWM_Number, PWM_dutyCycle); // Установка duty ) для 1-го канала
-	
-//  AT91F_PIO_CfgPeriph (AT91C_BASE_PIOB, MDATA_1, 0); //назначение линии PB9 (1MDATA) для TCLK0 счетчика TC0
+
 	if (MezStruct->Periph_AB == PeriphA)
 		AT91F_PIO_CfgPeriph(MezStruct->LineMDATA.PIO_ctrl_ptr, MezStruct->LineMDATA.PIO_Line, 0);
 	
@@ -525,73 +512,19 @@ void Mez_TT_init(mezonin *MezStruct)
 		if (MezStruct->Periph_AB == PeriphB)
 			AT91F_PIO_CfgPeriph(MezStruct->LineMDATA.PIO_ctrl_ptr, 0, MezStruct->LineMDATA.PIO_Line);
 	
-	//Конфигурация прерывания TC.
-	/*
-	 AIC_ConfigureIT(AT91C_ID_TC0, 0, MezStruct.TC_ISR_ptr);
-	 AIC_EnableIT(AT91C_ID_TC0);
-	 */
 	AIC_ConfigureIT(MezStruct->TC_ID, 0, MezStruct->TC_ISR_ptr);
 	AIC_EnableIT(MezStruct->TC_ID);
 	
-	//конфигурация блока счетчиков TCB0: внешний сигнал подается на TCLK1
-//  AT91C_BASE_TCB0->TCB_BMR = AT91C_TCB_TC0XC0S_TCLK0;
 	MezStruct->TC_blk_ptr->TCB_BMR |= MezStruct->TC_blk_mode;
 	// здесь, наверно, конфигурацию добавлять нужно будет (|=), т.к. блок на три счетчика надо конфигурировать
 	// а вообще-то, чего ее добавлять, если для всех счетчиков конфигурация блока нулевая
 	// но, конечно, добавлять будет правильнее, хотя в данном случае ни на что это не влияет
 	
 	//конфигурация счетчика TC1: внешний сигнал подается на TCLK1
-//  TC_Configure(AT91C_BASE_TC0, AT91C_TC_CLKS_XC0 | AT91C_TC_BURST_XC0);
 	TC_Configure(MezStruct->TC_ptr, MezStruct->TC_mode);
 	
-//  AT91C_BASE_TC0->TC_IER = AT91C_TC_COVFS; //разрешение прерывания по переполнению TC_CV
 	MezStruct->TC_ptr->TC_IER = AT91C_TC_COVFS;
 }
-//------------------------------------------------------------------------------
-/*unsigned int Mez_TT_DefineInputChannelNumber (int Mez_IDent)
- {
- static unsigned int Mez_1_ChannelNumber = 0;
- static unsigned int Mez_2_ChannelNumber = 0;
- static unsigned int Mez_3_ChannelNumber = 0;
- static unsigned int Mez_4_ChannelNumber = 0;
- unsigned int Channel;
-
-
- switch (Mez_IDent)
- {
- case Mez_1:
- Mez_1_ChannelNumber++;
- if (Mez_1_ChannelNumber == 5)
- Mez_1_ChannelNumber = 1;
- Channel = Mez_1_ChannelNumber;
- break;
-
- case Mez_2:
- Mez_2_ChannelNumber++;
- if (Mez_2_ChannelNumber == 5)
- Mez_2_ChannelNumber = 1;
- Channel = Mez_2_ChannelNumber;
- break;
-
- case Mez_3:
- Mez_3_ChannelNumber++;
- if (Mez_3_ChannelNumber == 5)
- Mez_3_ChannelNumber = 1;
- Channel = Mez_3_ChannelNumber;
- break;
-
- case Mez_4:
- Mez_4_ChannelNumber++;
- if (Mez_4_ChannelNumber == 5)
- Mez_4_ChannelNumber = 1;
- Channel = Mez_4_ChannelNumber;
- break;
- }
-
- return Channel;
-
- }*/
-//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 // EnableChannel (Channel) активирует выбранный канал
 // Входной параметр Channel - номер канала 1, 2, 3, 4.
@@ -815,39 +748,22 @@ void Mez_TP_handler(mezonin *MezStruct)
 //------------------------------------------------------------------------------
 void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
 {
-//  unsigned int Signal_value [4]; //массив подсчитанных значений физических величин всех каналов ввода
-//  int test = 0;
 	unsigned int Channel_V;
-//  unsigned int Channel_value [4];   //массив значений счетчика для всех каналов ввода
-	unsigned int MEZ_ID;
 	unsigned int test_count = 0;
 	
-//  portTickType d2,mt,ct;
-	
-//	unsigned int ChannelNumber;
-//  int ID;
 	Mez_Value Real_Value;
 	
 	if (flag_calib != 1) {
 		
 		MezStruct->ActiveChannel++;
-		if (MezStruct->ActiveChannel == 5)
+		if (MezStruct->ActiveChannel == 5) {
 			MezStruct->ActiveChannel = 1;
+		}
 		
-//  ChannelNumber = Mez_TT_DefineInputChannelNumber (MezStruct->Mez_ID);
-		
-//  Mez_TT_EnableChannel (ChannelNumber, MezStruct->LineA0.PIO_Line, MezStruct->LineA1.PIO_Line);
-//  MezStruct->ActiveChannel = ChannelNumber;
 		if (Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode == mode_ok ) {
 			
 			Mez_EnableChannel(MezStruct);		// переделал под свою функцию
-//  overflow[MezStruct->TC_ID - AT91C_ID_TC0] = 0;
 			overflow[MezStruct->Mez_ID - 1] = 0;
-//  id = MezStruct->Mez_ID - 1;
-//  if (ChannelNumber = Now_Channel)
-//  d2 = ct = xTaskGetTickCount();
-//	  vTaskDelay(1);
-//  d2 = xTaskGetTickCount() - d2;
 			
 			TC_Start(MezStruct->TC_ptr); //запуск счетчика TC1 (2MDATA)
 			
@@ -856,58 +772,18 @@ void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
 			MezStruct->Start = 1;
 			MezStruct->TickCount = Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.MeasTime;
 			
-//  AT91C_BASE_PWMC->PWMC_ENA = MezStruct->PWM_ID; //подача синхросигнала 2FIN
-//  while ((AT91C_BASE_PWMC->PWMC_SR & MezStruct->PWM_ID) != MezStruct->PWM_ID);
-			
-//  xLastWakeTime = xTaskGetTickCount();
-//  test = PIT_GetPIVR(); // reset PIT
-			// PIT_GetPIVR(); // reset PIT
-//  c = AT91C_BASE_PITC->PITC_PIIR;
-//  a = (c & AT91C_PITC_PICNT) >> 20;
-//  while (((AT91C_BASE_PITC->PITC_PIIR & AT91C_PITC_PICNT) >> 20) != MeasTime)
-//	  {
-//	  c = AT91C_BASE_PITC->PITC_PIIR;
-//	  b = (c & AT91C_PITC_PICNT) >> 20;
-//	  }; // измерение
-//  test = Mezonin_TT->Channel[ChannelNumber-1].Params.MeasTime;
-//  mt = xTaskGetTickCount();
-//  vTaskDelay(/* &xLastWakeTime,*/ Mezonin_TT[MezStruct->Mez_ID-1].Channel[ChannelNumber-1].Params.MeasTime); // добавил MeasTime из структуры
-//  mt = xTaskGetTickCount()-mt;
-//  vParTestToggleLED( 0 );
-			
-//  value_first = AT91C_BASE_PITC->PITC_PIVR+MeasTime;
-//  do{
-//  test = AT91C_BASE_PITC->PITC_PIIR;
-//  }
-//  while (test < value_first); // измерение
-			
 			xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
 			TC_Stop(MezStruct->TC_ptr); //остановка счетчика TC1 (2MDATA)
 			
-//  AT91C_BASE_PWMC->PWMC_DIS = MezStruct->PWM_ID; //прекращение подачи синхросигнала 2FIN
-			
-//  Channel_value [ChannelNumber-1] = MezStruct->TC_ptr->TC_CV + 65536*overflow[MezStruct->TC_ID - AT91C_ID_TC0]; //сохранение значения счетчика
-//  Channel_V = MezStruct->TC_ptr->TC_CV + 65536*overflow[MezStruct->TC_ID - AT91C_ID_TC0]; //сохранение значения счетчика
 			Channel_V = MezStruct->TC_ptr->TC_CV + 65536 * overflow[MezStruct->Mez_ID - 1]; //сохранение значения счетчика
 			VVV[MezStruct->Mez_ID - 1][MezStruct->ActiveChannel - 1] = Channel_V;
-			//  test = Channel_value[ChannelNumber-1];
-			MEZ_ID = MezStruct->Mez_ID - 1;
-//  Signal_value [ChannelNumber-1] = (unsigned int) Mez_TT_Frequency (Channel_value [ChannelNumber-1]);
-//  Real_Value.Value = Mez_TT_Frequency (Channel_value [ChannelNumber-1], /*Mezonin_TT*/ChannelNumber);
 			
-//  Real_Value.Value = Mez_TT_Frequency (Channel_V , /*Mezonin_TT*/ChannelNumber, MEZ_ID); //
 			Real_Value.Value = Channel_V;
 			Real_Value.Channel = MezStruct->ActiveChannel - 1;
 			Real_Value.ID = MezStruct->Mez_ID - 1;
 			
-//  Real_Value_test.ID = MezStruct->Mez_ID;
-//  Real_Value_test.Channel[ChannelNumber-1].Value = (unsigned int) Mez_TT_Frequency (Channel_value [ChannelNumber-1]);
-//  test = Signal_value[ChannelNumber-1];
-//  pxValue = &Real_Value;
 			if (xMezQueue != 0) {
-				// Send an unsigned long.  Wait for 10 ticks for space to become
-				// available if necessary.
-//		Switch_State=Value;
+
 				if (xQueueSend( xMezQueue, &Real_Value, ( portTickType ) 0 )) {
 					test_count++;     // Failed to post the message, even after 10 ticks.
 				}
@@ -1073,22 +949,16 @@ void Mez_TT_Calib(mezonin *MezStruct, int Channel_Num,
 //------------------------------------------------------------------------------
 void Mez_TU_handler(mezonin *MezStruct)
 {
-	//	  unsigned int ChannelNumber;
-	//	  unsigned int time;
+
 	unsigned char MDATA[4];
 	Mez_Value Real_TU;
-	portTickType NowCount;
 	
 	MezStruct->ActiveChannel++;
-	if (MezStruct->ActiveChannel > 4)
+	if (MezStruct->ActiveChannel > 4) {
 		MezStruct->ActiveChannel = 1;
+	}
 	
-	//	  ChannelNumber = Mez_TT_DefineInputChannelNumber (MezStruct->Mez_ID);
-	
-	if (Mezonin_TU[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode == mode_on || Mezonin_TU[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode == mode_ok )
-	//	  Mez_TT_EnableChannel (ChannelNumber, MezStruct->LineA0.PIO_Line, MezStruct->LineA1.PIO_Line);
-	//	  if ( MezStruct->ChannelMode[MezStruct->ActiveChannel] != Channel_OFF )
-	{
+	if (Mezonin_TU[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode == mode_on || Mezonin_TU[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode == mode_ok ) {
 		Mez_EnableChannel(MezStruct);		// переделал под свою функцию
 		
 		if (xMezTUQueue != 0) {
@@ -1102,40 +972,9 @@ void Mez_TU_handler(mezonin *MezStruct)
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, MDATA[Real_TU.ID]);
 				
 				// время выдержки
-				NowCount = xTaskGetTickCount();
-				//if (my_signal[i].Time) {
-				/*if (my_signal[i].TimeToEvent < (NowCount-my_signal[i].Time)) {
-				 my_signal[i].State = SIGNAL_ALARM;
-				 LedAlarm = ALARM_LED_BLINK | POWER_LED; // лампочка
-				 }*/
-				//}
-				/*			      			switch (Real_TU.Channel){
-				 case 0:
-				 SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x10);
-				 break;
-
-				 case 1:
-				 SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x20);
-				 break;
-
-				 case 2:
-				 SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x40);
-				 break;
-
-				 case 3:
-				 SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x80);
-				 break;
-				 }*/
 
 			}
 		}
-		/*if( xMezQueue != 0 )
-		 {
-
-		 if( xQueueSend( xMezQueue, &Real_TC, ( portTickType ) 0 ))
-		 {
-		 }
-		 }*/
 	}
 	
 }
@@ -1148,7 +987,6 @@ unsigned int Get_TTLevels(TT_Value *TT_temp)
 	int i, a;
 	unsigned char DataRecieve[40];	// ИСПРАВИТЬ!!!!!!!
 	unsigned short temp_CRC;
-//	int count = 0;		// счетчик сколько раз сравнивалось CRC для канала
 	
 	for (i = 0; i < 4; i++) {
 		
@@ -1159,8 +997,6 @@ unsigned int Get_TTLevels(TT_Value *TT_temp)
 		TT_temp->Channel[i].Levels.Sense = 0;
 		
 		a = MEZ_memory_Read(TT_temp->ID, i + 9, 0x00, sizeof(TT_Level), DataRecieve); // чтение начальных параметров из EEPROM
-//						a = MEZ_memory_Read (0, 1, 0x00, sizeof (TT_Param), DataRecieve); // чтение начальных параметров из EEPROM
-//		vTaskDelay(100);
 		
 		temp_CRC = Crc16(DataRecieve, sizeof(TT_Level) - sizeof(unsigned short) - 2);
 		if (temp_CRC == ((TT_Level *)DataRecieve)->CRC) {
@@ -1180,26 +1016,18 @@ unsigned int Get_TTCoeffs(TT_Value *TT_temp)
 	int i, a/*,test*/;
 	unsigned char DataRecieve[36];	// ИСПРАВИТЬ!!!!!!!
 	unsigned short temp_CRC;
-//	int count = 0;		// счетчик сколько раз сравнивалось CRC для канала
-//	TT_Param *Param_test;
-//	float temp1, temp2;
-	
 	for (i = 0; i < 4; i++) {
-		
 		TT_temp->Channel[i].Coeffs.k_max = 0;
 		TT_temp->Channel[i].Coeffs.k_min = 0;
 		TT_temp->Channel[i].Coeffs.p_max = 0;
 		TT_temp->Channel[i].Coeffs.p_min = 0;
-		
 		a = MEZ_memory_Read(TT_temp->ID, i + 5, 0x00, sizeof(TT_Coeff), DataRecieve); // чтение начальных параметров из EEPROM
-//		vTaskDelay(100);
-		
 		temp_CRC = Crc16(DataRecieve, sizeof(TT_Coeff) - sizeof(unsigned short) - 2);
-		if (temp_CRC == ((TT_Coeff *)DataRecieve)->CRC)	{
+		if (temp_CRC == ((TT_Coeff *)DataRecieve)->CRC) {
 			TT_temp->Channel[i].Coeffs = *(TT_Coeff *)DataRecieve;
 			TT_temp->Channel[i].Min_Value = TT_temp->Channel[i].Coeffs.k_min * TT_temp->Channel[i].Params.MeasTime + TT_temp->Channel[i].Coeffs.p_min;
 			TT_temp->Channel[i].Max_Value = TT_temp->Channel[i].Coeffs.k_max * TT_temp->Channel[i].Params.MeasTime + TT_temp->Channel[i].Coeffs.p_max;
-		}	else {
+		} else {
 			return 1;
 		}
 	}
@@ -1210,29 +1038,17 @@ unsigned int Get_TTCoeffs(TT_Value *TT_temp)
 //------------------------------------------------------------------------------
 unsigned int Get_TTParams(TT_Value *TT_temp)
 {
-	int i, a/*,test*/;
+	int i, a;
 	unsigned char DataRecieve[44];	// ИСПРАВИТЬ!!!!!!!
 	unsigned short temp_CRC;
-	int count = 0;		// счетчик сколько раз сравнивалось CRC для канала
-//	TT_Param *Param_test;
-//	float temp1, temp2;
-	
 	for (i = 0; i < 4; i++) {
-/*		TT_temp->Channel[i].Params.MeasTime = 0;
-		TT_temp->Channel[i].Params.Mode = 4;
-		TT_temp->Channel[i].Params.MinD = 100;
-		TT_temp->Channel[i].Params.MaxD = 0;
-		TT_temp->Channel[i].Params.MinF = 0;
-		TT_temp->Channel[i].Params.MaxF = 0;*/
-		
 		TT_temp->Channel[i].Levels.Sense = 1.0;
 		a = MEZ_memory_Read(TT_temp->ID, i + 1, 0x00, sizeof(TT_Param), DataRecieve); // чтение начальных параметров из EEPROM
 		
 		temp_CRC = Crc16(DataRecieve, sizeof(TT_Param) - sizeof(unsigned short) - 2);
-		if (temp_CRC == ((TT_Param *)DataRecieve)->CRC)	{
+		if (temp_CRC == ((TT_Param *)DataRecieve)->CRC) {
 			TT_temp->Channel[i].Params = *(TT_Param *)DataRecieve;
-			count = 0;
-		}	else {
+		} else {
 			return 1;
 		}
 	}
@@ -1247,7 +1063,6 @@ unsigned int Get_TCParams(TC_Value *TC_ParamData)
 	unsigned char DataRecieve[24];
 	unsigned short temp_CRC;
 	for (i = 0; i < 4; i++) {
-		
 		TC_ParamData->Channel[i].Params.Mode = 4;
 		a = MEZ_memory_Read(TC_ParamData->ID, i + 1, 0x00, sizeof(TC_Param), DataRecieve); // чтение начальных параметров из EEPROM
 		temp_CRC = Crc16(DataRecieve, sizeof(TC_Param) - sizeof(unsigned short) - 2);
@@ -1261,24 +1076,13 @@ unsigned int Get_TCParams(TC_Value *TC_ParamData)
 	
 }
 //------------------------------------------------------------------------------
-
-//------------------------------------------------------------------------------
 // определение режима работы каналов TU
 //------------------------------------------------------------------------------
 unsigned int Get_TUParams(TU_Value *TU_temp)
 {
 	int i;
-//	int i, a, test;
-//	unsigned char DataRecieve[24];
-//	unsigned short temp_CRC;
-//	int count = 0;		// счетчик сколько раз сравнивалось CRC для канала
-//	TC_Param		*Param_test;
-//    for (i=0;i<24;i++)
-//    	DataRecieve[i] = 0;
 	for (i = 0; i < 4; i++) {
-		
 		TU_temp->Channel[i].Params.Mode = 0;
-		
 		TU_temp->Channel[i].Value = 0;
 		
 		//a = MEZ_memory_Read (TC_temp->ID, i+1, 0x00, sizeof (TC_Param), DataRecieve); // чтение начальных параметров из EEPROM

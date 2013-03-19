@@ -272,19 +272,13 @@ void CAN_Handler(unsigned char can_number)
 //------------------------------------------------------------------------------
 void CAN_InitMailboxRegisters(CanTransfer *pTransfer)
 {
-	AT91PS_CAN base_can;
 	AT91PS_CAN_MB CAN_Mailbox;
 	
 	if (pTransfer->can_number == 0) {
-		base_can = AT91C_BASE_CAN0;
 		CAN_Mailbox = AT91C_BASE_CAN0_MB0;
-	}
-#ifdef AT91C_BASE_CAN1
-	else {
-		base_can = AT91C_BASE_CAN1;
+	}	else {
 		CAN_Mailbox = AT91C_BASE_CAN1_MB0;
 	}
-#endif
 	CAN_Mailbox = (AT91PS_CAN_MB)((unsigned int)CAN_Mailbox + (unsigned int)(0x20 * pTransfer->mailbox_number));
 	
 	pTransfer->mailbox_in_use |= 1 << (pTransfer->mailbox_number);

@@ -605,7 +605,7 @@ void MezTT_WriteParam(void *p)
 //	int Mez_1_type;
 	portTickType xLastWakeTime;
 	const portTickType xFrequency = 200;
-	unsigned char Mez_Type;
+//	unsigned char Mez_Type;
 //	unsigned char Value2;
 //	unsigned char Period;
 //	unsigned char * DataToWrite;
@@ -617,7 +617,7 @@ void MezTT_WriteParam(void *p)
 	
 //	    Mez_Num = p;
 	
-	Mez_Type = 0x03;
+//	Mez_Type = 0x03;
 	
 	Channel_Num = 0;  // номер канала, с которым идет работа в данный момент
 	
