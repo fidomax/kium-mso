@@ -101,8 +101,7 @@ typedef struct
 //------------------------------------------------------------------------------
 //         Exported functions
 //------------------------------------------------------------------------------
-extern unsigned char CAN_Init(unsigned int baudrate,
-		CanTransfer *canTransferRead, CanTransfer *canTransferWrite);
+extern unsigned char CAN_Init(unsigned int baudrate);
 extern void CAN_BasicTestSuite(void);
 
 void CAN_Handler(unsigned char);

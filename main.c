@@ -60,26 +60,7 @@
  */
 
 /*
- * This demo includes a (basic) USB mouse driver and a WEB server.  It is
- * targeted for the AT91SAM7X EK prototyping board which includes a small
- * joystick to provide the mouse inputs.  The WEB interface provides some basic
- * interactivity through the use of a check box to turn on and off an LED.
- *
- * main() creates the WEB server, USB, and a set of the standard demo tasks
- * before starting the scheduler.  See the online FreeRTOS.org documentation
- * for more information on the standard demo tasks.
- *
- * LEDs D1 to D3 are controlled by the standard 'flash' tasks - each will
- * toggle at a different fixed frequency.
- *
- * A tick hook function is used to monitor the standard demo tasks - with LED
- * D4 being used to indicate the system status.  D4 toggling every 5 seconds
- * indicates that all the standard demo tasks are executing without error.  The
- * toggle rate increasing to 500ms is indicative of an error having been found
- * in at least one demo task.
- *
- * See the online documentation page that accompanies this demo for full setup
- * and usage information.
+
  */
 
 /* Standard includes. */
@@ -109,8 +90,7 @@
 extern void TWI_ISR(void) __attribute__((naked));
 extern void CAN0_ISR(void) __attribute__((naked));
 extern void CAN1_ISR(void) __attribute__((naked));
-//extern void PIT_ISR (void) __attribute__((naked));
-//extern volatile TWI_TRANSFER  TWI_packet;
+
 
 /* Priorities for the demo application tasks. */
 #define mainUIP_PRIORITY					( tskIDLE_PRIORITY + 2 )
@@ -123,8 +103,6 @@ extern void CAN1_ISR(void) __attribute__((naked));
 #define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 5 )
 #define mainUIP_TASK_STACK_SIZE_MIN		( configMINIMAL_STACK_SIZE * 3 )
 
-/* The LED toggle by the tick hook should an error have been found in a task. */
-//#define mainERROR_LED						( 3 )
 //------------------------------------------------------------------------------
 //         For Page Mezonin
 //------------------------------------------------------------------------------
@@ -132,7 +110,7 @@ extern void CAN1_ISR(void) __attribute__((naked));
 #define PageCoeff	((unsigned int) 5)
 #define PageLevel	((unsigned int) 9)
 
-volatile char MSO_Addres; /* Состояние Switch8*/
+volatile char MSO_Address;
 
 xSemaphoreHandle xTWISemaphore;
 xQueueHandle xCanQueue, xMezQueue, xMezTUQueue;
@@ -145,11 +123,11 @@ CanTransfer canTransfer_new0;
 mezonin mezonin_my[4];
 
 xTaskHandle xMezHandle;
-TT_Value Mezonin_TT[4]; // массив для работы с ТТ
+TT_Value Mezonin_TT[4];
 
-TC_Value Mezonin_TC[4]; // массив для работы с ТС
+TC_Value Mezonin_TC[4];
 
-TU_Value Mezonin_TU[4]; // массив для работы с ТУ
+TU_Value Mezonin_TU[4];
 
 int tt[100];
 int c = 0;
@@ -164,13 +142,13 @@ static void prvSetupHardware(void);
 void PCA9532_init(void)
 {
 	TWI_StartWrite(AT91C_BASE_TWI, (unsigned char)PCA9532_address, (PCA9532_PSC0 | PCA9532_AUTO_INCR), 1);
-	//PSC0 с периодом 1 секунда
+	//PSC0 period 1 second
 	TWI_WriteByte(AT91C_BASE_TWI, 0x97);
 	Wait_THR_Ready();
 	//PWM0 duty cycle 50%
 	TWI_WriteByte(AT91C_BASE_TWI, 0x80);
 	Wait_THR_Ready();
-	//PSC1 с частотой 2 Гц
+	//PSC1 frequency 2 Hz
 	TWI_WriteByte(AT91C_BASE_TWI, 0x4B);
 	Wait_THR_Ready();
 	//PWM1 duty cycle 50%
@@ -201,8 +179,8 @@ void CanHandler(void *p)
 	xLastWakeTime = xTaskGetTickCount();
 	CAN_Init(1000, &canTransfer_new0, &canTransfer_new1);
 	
-	//Настройка приемного MailBox'а на прием по адресу платы
-	identifier = AT91C_CAN_MIDE | /*priority_R | identifier_TC |*/MSO_Addres << PosAdress /*| 0 << 3*/;
+	//Setup receiving MailBox by MSO address
+	identifier = AT91C_CAN_MIDE | MSO_Address << PosAdress;
 	FillCanPacket(&canTransfer_new0, 1, 1, AT91C_CAN_MOT_RX, MaskAdress << PosAdress, identifier);
 	FillCanPacket(&canTransfer_new1, 0, 1, AT91C_CAN_MOT_RX, MaskAdress << PosAdress, identifier);
 	
@@ -389,7 +367,7 @@ void CanHandler(void *p)
 					break;
 					
 				case priority_R : {
-					identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Addres << PosAdress | Channel_Num << PosChannel | Param; // составление идентификатора для посылки
+					identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress | Channel_Num << PosChannel | Param; // составление идентификатора для посылки
 					canID = Recieve_Message.canID;	// номер CAN
 					FillCanPacket(&canTransfer1, canID, 3, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 					
@@ -1430,7 +1408,7 @@ void MezValue(void *p)
 							Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State = Mez_V.Value >> 1; // доработать со сдвигами
 							
 							ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-							identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TC << 18 | MSO_Addres << 10 | ChannelNumber << 4 | ParamFV; // составление идентификатора для посылки
+							identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TC << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamFV; // составление идентификатора для посылки
 							
 							n = 0;
 							while (!n) {
@@ -1515,7 +1493,7 @@ void MezValue(void *p)
 						{
 							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
 							ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-							identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TT << 18 | MSO_Addres << 10 | ChannelNumber << 4 | ParamTC; // составление идентификатора для посылки
+							identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TT << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamTC; // составление идентификатора для посылки
 							
 							n = 0;
 							while (!n) {
@@ -1602,7 +1580,7 @@ void MezRec(void *p) // распознование типа мезонина
 	signed char a;
 	if (xTWISemaphore != NULL) {
 		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			MSO_Addres = Switch8_Read(); // Определение адреса МСО
+			MSO_Address = Switch8_Read(); // Определение адреса МСО
 		}
 		xSemaphoreGive(xTWISemaphore);
 	}

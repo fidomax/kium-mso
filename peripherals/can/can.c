@@ -92,11 +92,10 @@ static const Pin pins_can_transceiver_rs[] = {PINS_CAN_TRANSCEIVER_RS};
 static const Pin pin_can_transceiver_rxen = PIN_CAN_TRANSCEIVER_RXEN;
 #endif
 
-//static CanTransfer *pCAN0Transfer=NULL;
 Message Actual_Message;
-static CanTransfer *pCAN0Transfer = NULL;
+//static CanTransfer *pCAN0Transfer = NULL;
 #ifdef AT91C_BASE_CAN1
-static CanTransfer *pCAN1Transfer = NULL;
+//static CanTransfer *pCAN1Transfer = NULL;
 #endif
 //Message Actual_Message;
 extern xQueueHandle xCanQueue;
@@ -196,71 +195,60 @@ void CAN_Handler(unsigned char can_number)
 	unsigned int message_mode;
 	unsigned char numMailbox;
 	portBASE_TYPE xTaskWokenByPost = pdFALSE;
-
 	
 	if (can_number == 0) {
 		base_can = AT91C_BASE_CAN0;
 		CAN_Mailbox = AT91C_BASE_CAN0_MB0;
-	}	else {
+	} else {
 		base_can = AT91C_BASE_CAN1;
 		CAN_Mailbox = AT91C_BASE_CAN1_MB0;
 	}
 	status = (base_can->CAN_SR) & (base_can->CAN_IMR);
 	base_can->CAN_IDR = status;
 	
-	if (status & AT91C_CAN_WAKEUP) {
-		if (can_number == 0) {
-//			pCAN0Transfer->test_can = AT91C_TEST_OK;
-//			pCAN0Transfer->state = CAN_IDLE;
-		}	else {
-//			pCAN1Transfer->test_can = AT91C_TEST_OK;
-//			pCAN1Transfer->state = CAN_IDLE;
-		}
-	}	else {
-		if ((status & 0x0000FFFF) != 0) {
+	if ((status & 0x0000FFFF) != 0) {
 
-			// Handle Mailbox interrupts
-			for (numMailbox = 0; numMailbox < NUM_MAILBOX_MAX; numMailbox++) {
-				
-				can_msr = *(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x10 + (0x20 * numMailbox)));
-				if ((AT91C_CAN_MRDY & can_msr) == AT91C_CAN_MRDY) {
-					// Mailbox object type
-					message_mode = ((*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x00 + (0x20 * numMailbox)))) >> 24) & 0x7;
-					if (message_mode == 0) {
+		// Handle Mailbox interrupts
+		for (numMailbox = 0; numMailbox < NUM_MAILBOX_MAX; numMailbox++) {
+
+			can_msr = *(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x10 + (0x20 * numMailbox)));
+			if ((AT91C_CAN_MRDY & can_msr) == AT91C_CAN_MRDY) {
+				// Mailbox object type
+				message_mode = ((*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x00 + (0x20 * numMailbox)))) >> 24) & 0x7;
+				if (message_mode == 0) {
+				} else {
+					if ((message_mode == CAN_MOT_RECEPT) || (message_mode == CAN_MOT_RECEPT_OW) || (message_mode == CAN_MOT_PRODUCER)) {
+
+						Actual_Message.data_low_reg = (*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x14 + (0x20 * numMailbox))));
+						Actual_Message.data_high_reg = (*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x18 + (0x20 * numMailbox))));
+						Actual_Message.real_Identifier = (*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x08 + (0x20 * numMailbox))));
+						Actual_Message.canID = can_number;
+						xTaskWokenByPost = xQueueSendFromISR( xCanQueue, &Actual_Message, &xTaskWokenByPost );
+
+						base_can->CAN_TCR = 1 << numMailbox;
+						base_can->CAN_IER = 1 << numMailbox;
+
+						// Message Data has been received
+						pCan_mcr = (unsigned int*)((unsigned int)CAN_Mailbox + 0x1C + (0x20 * numMailbox));
+						*pCan_mcr = AT91C_CAN_MTCR;
+
 					} else {
-						if ((message_mode == CAN_MOT_RECEPT) || (message_mode == CAN_MOT_RECEPT_OW) || (message_mode == CAN_MOT_PRODUCER)) {
 
-							Actual_Message.data_low_reg = (*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x14 + (0x20 * numMailbox))));
-							Actual_Message.data_high_reg = (*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x18 + (0x20 * numMailbox))));
-							Actual_Message.real_Identifier = (*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x08 + (0x20 * numMailbox))));
-							Actual_Message.canID = can_number;
-							xTaskWokenByPost = xQueueSendFromISR( xCanQueue, &Actual_Message, &xTaskWokenByPost );
-
-							base_can->CAN_TCR = 1 << numMailbox;
-							base_can->CAN_IER = 1 << numMailbox;
-
-							// Message Data has been received
-							pCan_mcr = (unsigned int*)((unsigned int)CAN_Mailbox + 0x1C + (0x20 * numMailbox));
-							*pCan_mcr = AT91C_CAN_MTCR;
-							
-						} else {
-
-						}
 					}
 				}
 			}
 		}
 	}
+
 	if ((status & 0xFFCF0000) != 0) {
-		CAN_ErrorHandling(status, 0);
+		CAN_ErrorHandling(status, can_number);
 	}
 	
 	// Now the buffer is empty we can switch context if necessary.  Note that the
 	// name of the yield function required is port specific.
-	/*	if( xTaskWokenByPost )
-	 {
-	 taskYIELD();
-	 }*/
+	if (xTaskWokenByPost) {
+		taskYIELD();
+	}
 
 }
 //------------------------------------------------------------------------------
@@ -276,7 +264,7 @@ void CAN_InitMailboxRegisters(CanTransfer *pTransfer)
 	
 	if (pTransfer->can_number == 0) {
 		CAN_Mailbox = AT91C_BASE_CAN0_MB0;
-	}	else {
+	} else {
 		CAN_Mailbox = AT91C_BASE_CAN1_MB0;
 	}
 	CAN_Mailbox = (AT91PS_CAN_MB)((unsigned int)CAN_Mailbox + (unsigned int)(0x20 * pTransfer->mailbox_number));
@@ -312,9 +300,8 @@ void CAN_InitMailboxRegisters(CanTransfer *pTransfer)
 void CAN_ResetAllMailbox(void)
 {
 	unsigned char i;
-	
-//#if defined (AT91C_BASE_CAN0_MB0)
-	CAN_ResetTransfer(pCAN0Transfer);
+	CanTransfer *pCAN0Transfer = NULL;
+//	CAN_ResetTransfer(pCAN0Transfer);
 	for (i = 0; i < NUM_MAILBOX_MAX; i++) {
 		pCAN0Transfer->can_number = 0;
 		pCAN0Transfer->mailbox_number = i;
@@ -326,23 +313,8 @@ void CAN_ResetAllMailbox(void)
 		pCAN0Transfer->control_reg = 0x00000000;
 		CAN_InitMailboxRegisters(pCAN0Transfer);
 	}
-//#endif
-//#if defined (AT91C_BASE_CAN0_MB8)
-	/*   for( i=0; i<8; i++ ) {
-	 pCAN0Transfer->can_number = 0;
-	 pCAN0Transfer->mailbox_number = i+8;
-	 pCAN0Transfer->mode_reg = AT91C_CAN_MOT_DIS;
-	 pCAN0Transfer->acceptance_mask_reg = 0;
-	 pCAN0Transfer->identifier = 0;
-	 pCAN0Transfer->data_low_reg = 0x00000000;
-	 pCAN0Transfer->data_high_reg = 0x00000000;
-	 pCAN0Transfer->control_reg = 0x00000000;
-	 CAN_InitMailboxRegisters( pCAN0Transfer );
-	 }*/
-//#endif
-//#if defined (AT91C_BASE_CAN1_MB0)
 	if (pCAN1Transfer != NULL) {
-		CAN_ResetTransfer(pCAN1Transfer);
+//		CAN_ResetTransfer(pCAN1Transfer);
 		for (i = 0; i < NUM_MAILBOX_MAX; i++) {
 			pCAN1Transfer->can_number = 1;
 			pCAN1Transfer->mailbox_number = i;
@@ -355,22 +327,6 @@ void CAN_ResetAllMailbox(void)
 			CAN_InitMailboxRegisters(pCAN1Transfer);
 		}
 	}
-//#endif
-//#if defined (AT91C_BASE_CAN1_MB8)
-	/*    if( pCAN1Transfer != NULL ) {
-	 for( i=0; i<8; i++ ) {
-	 pCAN1Transfer->can_number = 1;
-	 pCAN1Transfer->mailbox_number = i+8;
-	 pCAN1Transfer->mode_reg = AT91C_CAN_MOT_DIS;
-	 pCAN1Transfer->acceptance_mask_reg = 0;
-	 pCAN1Transfer->identifier = 0;
-	 pCAN1Transfer->data_low_reg = 0x00000000;
-	 pCAN1Transfer->data_high_reg = 0x00000000;
-	 pCAN1Transfer->control_reg = 0x00000000;
-	 CAN_InitMailboxRegisters( pCAN1Transfer );
-	 }
-	 }*/
-//#endif
 }
 
 //------------------------------------------------------------------------------
@@ -396,56 +352,24 @@ void CAN_ResetTransfer(CanTransfer *pTransfer)
 /// Wait for CAN synchronisation
 /// \return return 1 for good initialisation, otherwise return 0
 //------------------------------------------------------------------------------
-static unsigned char CAN_Synchronisation(void)
+static unsigned char CAN_Synchronisation(unsigned char can_number)
 {
-	unsigned int tick = 0;
-	
-//    trace_LOG( trace_INFO, "CAN_Synchronisation\n\r");
-	
-	pCAN0Transfer->test_can = AT91C_TEST_NOK;
-#ifdef AT91C_BASE_CAN1
-	if (pCAN1Transfer != NULL) {
-		pCAN1Transfer->test_can = AT91C_TEST_NOK;
+	unsigned int tick;
+	AT91PS_CAN base_can;
+	if (can_number == 0) {
+		base_can = AT91C_BASE_CAN0;
+	} else {
+		base_can = AT91C_BASE_CAN1;
 	}
-#endif
-	// Enable CAN and Wait for WakeUp Interrupt
-	AT91C_BASE_CAN0 ->CAN_IER = AT91C_CAN_WAKEUP;
 	// CAN Controller Enable
-	AT91C_BASE_CAN0 ->CAN_MR = AT91C_CAN_CANEN;
+	base_can->CAN_MR = AT91C_CAN_CANEN;
 	// Enable Autobaud/Listen mode
 	// dangerous, CAN not answer in this mode
-	
-	while ((pCAN0Transfer->test_can != AT91C_TEST_OK) && (tick < AT91C_CAN_TIMEOUT)) {
-		tick++;
-	}
-	if (tick == AT91C_CAN_TIMEOUT) {
-//        trace_LOG( trace_ERROR, "-E- CAN0 Initialisations FAILED\n\r");
-		return 0;
-	} else {
-//        trace_LOG( trace_INFO, "-I- CAN0 Initialisations Completed\n\r");
-	}
-	
-#if defined AT91C_BASE_CAN1
-	if (pCAN1Transfer != NULL) {
-		AT91C_BASE_CAN1 ->CAN_IER = AT91C_CAN_WAKEUP;
-		// CAN Controller Enable
-		AT91C_BASE_CAN1 ->CAN_MR = AT91C_CAN_CANEN;
-		
-		tick = 0;
-		// Wait for WAKEUP flag raising <=> 11-recessive-bit were scanned by the transceiver
-		while (((pCAN1Transfer->test_can != AT91C_TEST_OK)) && (tick < AT91C_CAN_TIMEOUT)) {
-			tick++;
-		}
-		
-		if (tick == AT91C_CAN_TIMEOUT) {
-//            trace_LOG( trace_ERROR, "-E- CAN1 Initialisations FAILED\n\r");
-			return 0;
-		}
-//            else {
-//            trace_LOG( trace_INFO, "-I- CAN1 Initialisations Completed\n\r");
-//        }
-	}
-#endif
+	for (tick = 0;
+			!(base_can->CAN_SR & AT91C_CAN_WAKEUP)&& (tick < AT91C_CAN_TIMEOUT);tick++)if (tick == AT91C_CAN_TIMEOUT) {
+				return 0;
+			}
+
 	return 1;
 }
 
@@ -581,13 +505,9 @@ unsigned char CAN_BaudRateCalculate(AT91PS_CAN base_CAN, unsigned int baudrate)
 	unsigned int PHASE2;
 	unsigned int SJW;
 	unsigned int t1t2;
-//    float t;
 	
 	base_CAN->CAN_BR = 0;
-//    t=(BOARD_MCK / (baudrate*1000*16))-1+0.5;
-//    BRP = t;
 	BRP = (BOARD_MCK / (baudrate * 1000 * 16)) - 1 + 0.5;
-	//trace_LOG( trace_DEBUG, "BRP = 0x%X\n\r", BRP);
 	// timing Delay:
 	// Delay Bus Driver: 50 ns
 	// Delay Receiver:   30 ns
@@ -597,40 +517,28 @@ unsigned char CAN_BaudRateCalculate(AT91PS_CAN base_CAN, unsigned int baudrate)
 	} else {
 		PROPAG = 0;
 	}
-	//trace_LOG( trace_DEBUG, "PROPAG = 0x%X\n\r", PROPAG);
-	
 	t1t2 = 15 - (PROPAG + 1);
-	//trace_LOG( trace_DEBUG, "t1t2 = 0x%X\n\r", t1t2);
 	
 	if ((t1t2 & 0x01) == 0x01) {
 		// ODD
-		//trace_LOG( trace_DEBUG, "ODD\n\r");
 		PHASE1 = ((t1t2 - 1) / 2) - 1;
 		PHASE2 = PHASE1 + 1;
 	} else {
 		// EVEN
-		//trace_LOG( trace_DEBUG, "EVEN\n\r");
 		PHASE1 = (t1t2 / 2) - 1;
 		PHASE2 = PHASE1;
 	}
-	//trace_LOG( trace_DEBUG, "PHASE1 = 0x%X\n\r", PHASE1);
-	//trace_LOG( trace_DEBUG, "PHASE2 = 0x%X\n\r", PHASE2);
 	
 	if (1 > (4 / (PHASE1 + 1))) {
-		//trace_LOG( trace_DEBUG, "4*Tcsc\n\r");
 		SJW = 3;
 	} else {
-		//trace_LOG( trace_DEBUG, "Tphs1\n\r");
 		SJW = PHASE1;
 	}
-	//trace_LOG( trace_DEBUG, "SJW = 0x%X\n\r", SJW);
 	// Verif
 	if (BRP == 0) {
-//        trace_LOG( trace_DEBUG, "BRP = 0 is not authorized\n\r");
 		return 0;
 	}
 	if ((PROPAG + PHASE1 + PHASE2) != 12) {
-//        trace_LOG( trace_DEBUG, "(PROPAG + PHASE1 + PHASE2) != 12\n\r");
 		return 0;
 	}
 	base_CAN->CAN_BR = (AT91C_CAN_PHASE2 & (PHASE2 << 0)) + (AT91C_CAN_PHASE1 & (PHASE1 << 4)) + (AT91C_CAN_PROPAG & (PROPAG << 8)) + (AT91C_CAN_SYNC & (SJW << 12)) + (AT91C_CAN_BRP & (BRP << 16)) + (AT91C_CAN_SMP & (0 << 24));
@@ -649,10 +557,8 @@ unsigned char CAN_BaudRateCalculate(AT91PS_CAN base_CAN, unsigned int baudrate)
 /// \return return 1 if CAN has good baudrate and CAN is synchronized,
 ///         otherwise return 0
 //------------------------------------------------------------------------------
-unsigned char CAN_Init(unsigned int baudrate, CanTransfer *canTransfer0,
-		CanTransfer *canTransfer1)
+unsigned char CAN_Init(unsigned int baudrate)
 {
-	unsigned char ret;
 	
 	// CAN Transmit Serial Data
 #if defined (PINS_CAN_TRANSCEIVER_TXD)
@@ -691,42 +597,28 @@ unsigned char CAN_Init(unsigned int baudrate, CanTransfer *canTransfer0,
 	PIO_Clear(&pins_can_transceiver_rs[0]);
 	PIO_Clear(&pins_can_transceiver_rs[1]);
 #endif
-	// Configure the AIC for CAN interrupts
-//    AIC_ConfigureIT(AT91C_ID_CAN0, AT91C_AIC_PRIOR_HIGHEST, CAN0_Handler);
 	
 	// Enable the interrupt on the interrupt controller
 	AIC_EnableIT(AT91C_ID_CAN0);
 	
 	if (CAN_BaudRateCalculate(AT91C_BASE_CAN0, baudrate) == 0) {
 		// Baudrate problem
-//        trace_LOG( trace_DEBUG, "Baudrate CAN0 problem\n\r");
 		return 0;
 	}
-	
-	pCAN0Transfer = canTransfer0;
-	
-#if defined AT91C_BASE_CAN1
-	if (canTransfer1 != NULL) {
-		pCAN1Transfer = canTransfer1;
-		// Enable CAN1 Clocks
-		AT91C_BASE_PMC ->PMC_PCER = (1 << AT91C_ID_CAN1);
-		
-		// disable all IT
-		AT91C_BASE_CAN1 ->CAN_IDR = 0x1FFFFFFF;
-		
-		// Configure the AIC for CAN interrupts
-//        AIC_ConfigureIT(AT91C_ID_CAN1, AT91C_AIC_PRIOR_HIGHEST, CAN1_Handler);
-		
-		// Enable the interrupt on the interrupt controller
-		AIC_EnableIT(AT91C_ID_CAN1);
-		
-		if (CAN_BaudRateCalculate(AT91C_BASE_CAN1, baudrate) == 0) {
-			// Baudrate problem
-//            trace_LOG( trace_DEBUG, "Baudrate CAN1 problem\n\r");
-			return 0;
-		}
+	// Enable CAN1 Clocks
+	AT91C_BASE_PMC ->PMC_PCER = (1 << AT91C_ID_CAN1);
+
+	// disable all IT
+	AT91C_BASE_CAN1 ->CAN_IDR = 0x1FFFFFFF;
+
+	// Enable the interrupt on the interrupt controller
+	AIC_EnableIT(AT91C_ID_CAN1);
+
+	if (CAN_BaudRateCalculate(AT91C_BASE_CAN1, baudrate) == 0) {
+		// Baudrate problem
+		return 0;
 	}
-#endif
+
 	// Reset all mailbox
 	CAN_ResetAllMailbox();
 	
@@ -737,24 +629,19 @@ unsigned char CAN_Init(unsigned int baudrate, CanTransfer *canTransfer0,
 	| AT91C_CAN_FERR  // (CAN) Form Error
 	| AT91C_CAN_AERR; // (CAN) Acknowledgment Error
 	
-#if defined AT91C_BASE_CAN1
-	if (canTransfer1 != NULL) {
-		AT91C_BASE_CAN1 ->CAN_IER = AT91C_CAN_CERR  // (CAN) CRC Error
-		| AT91C_CAN_SERR  // (CAN) Stuffing Error
-		| AT91C_CAN_BERR  // (CAN) Bit Error
-		| AT91C_CAN_FERR  // (CAN) Form Error
-		| AT91C_CAN_AERR; // (CAN) Acknowledgment Error
-	}
-#endif
+	AT91C_BASE_CAN1 ->CAN_IER = AT91C_CAN_CERR  // (CAN) CRC Error
+	| AT91C_CAN_SERR  // (CAN) Stuffing Error
+	| AT91C_CAN_BERR  // (CAN) Bit Error
+	| AT91C_CAN_FERR  // (CAN) Form Error
+	| AT91C_CAN_AERR; // (CAN) Acknowledgment Error
 	
 	// Wait for CAN synchronisation
-	if (CAN_Synchronisation() == 1) {
-		ret = 1;
-	} else {
-		ret = 0;
+	if (CAN_Synchronisation(0) == 1) {
+		if (CAN_Synchronisation(1) == 1) {
+			return 1;
+		}
 	}
 	
-	return ret;
+	return 0;
 }
-
 
