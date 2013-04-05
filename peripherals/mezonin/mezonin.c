@@ -11,31 +11,14 @@
 #include "../aic/aic.h"
 unsigned int VVV[4][4];
 
-//#define TC_ERROR    0
-//#define TC_BRK      1
 #define TC_OFF      0
 #define TC_ON       1
-
 #define TC_OK		1
 #define TC_BRK		0
-
 #define Channel_OFF	4
 
-//unsigned int TC_State[4] = {0,0,0,0};
 
-//#define    MeasTime_old      ((unsigned int)    20) // Для ТТ
-
-//#define		k_max 	((float)	1499.275)
-//#define		k_min 	((float)	236.2625)
-//#define		p_max 	((float)	-3.5)
-//#define		p_min 	((float)	-1.25)
-
-/*mezonin    mezonin_1;
- mezonin    mezonin_2;
- mezonin    mezonin_3;
- mezonin    mezonin_4;*/
-
-unsigned int overflow[4];		// массив значений перполнений счетчика TC
+unsigned int overflow[4];		// массив значений перполнений счетчика TT
 
 extern TT_Value Mezonin_TT[4];
 extern TC_Value Mezonin_TC[4];
@@ -47,204 +30,25 @@ extern xSemaphoreHandle xTWISemaphore;
 
 unsigned int Min20, Min100, Max20, Max100;
 short flag_calib;
-/*void MSO_init (void)
- {
 
- AT91PS_CAN_MB AT91C_BASE_CAN0_MB_Massive[16] =
- {AT91C_BASE_CAN0_MB0,  AT91C_BASE_CAN0_MB1,  AT91C_BASE_CAN0_MB2,  AT91C_BASE_CAN0_MB3,
- AT91C_BASE_CAN0_MB4,  AT91C_BASE_CAN0_MB5,  AT91C_BASE_CAN0_MB6,  AT91C_BASE_CAN0_MB7,
- AT91C_BASE_CAN0_MB8,  AT91C_BASE_CAN0_MB9,  AT91C_BASE_CAN0_MB10, AT91C_BASE_CAN0_MB11,
- AT91C_BASE_CAN0_MB12, AT91C_BASE_CAN0_MB13, AT91C_BASE_CAN0_MB14, AT91C_BASE_CAN0_MB15 };
-
- AT91PS_CAN_MB AT91C_BASE_CAN1_MB_Massive[16] =
- {AT91C_BASE_CAN1_MB0,  AT91C_BASE_CAN1_MB1,  AT91C_BASE_CAN1_MB2,  AT91C_BASE_CAN1_MB3,
- AT91C_BASE_CAN1_MB4,  AT91C_BASE_CAN1_MB5,  AT91C_BASE_CAN1_MB6,  AT91C_BASE_CAN1_MB7,
- AT91C_BASE_CAN1_MB8,  AT91C_BASE_CAN1_MB9,  AT91C_BASE_CAN1_MB10, AT91C_BASE_CAN1_MB11,
- AT91C_BASE_CAN1_MB12, AT91C_BASE_CAN1_MB13, AT91C_BASE_CAN1_MB14, AT91C_BASE_CAN1_MB15 };
-
- // инициализация CAN
-
- // назначение линий ввода/вывода
- AT91F_PIO_CfgPeriph (AT91C_BASE_PIOA, CAN1RX, 0);
- AT91F_PIO_CfgPeriph (AT91C_BASE_PIOA, CAN1TX, 0);
- AT91F_PIO_CfgPeriph (AT91C_BASE_PIOA, CAN2RX, 0);
- AT91F_PIO_CfgPeriph (AT91C_BASE_PIOA, CAN2TX, 0);
- AT91F_PIO_CfgOutput (AT91C_BASE_PIOA, AT91C_PIO_PA30); // DD1 in high speed mode
- AT91F_PIO_CfgOutput (AT91C_BASE_PIOA, AT91C_PIO_PA31); // DD2 in high speed mode
- // активация питания
- AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_CAN0);
- AT91C_BASE_PMC->PMC_PCER = (1 << AT91C_ID_CAN1);
- // запрет всех прерываний
- AT91C_BASE_CAN0->CAN_IDR = 0xFFFFFFFF;
- AT91C_BASE_CAN1->CAN_IDR = 0xFFFFFFFF;
- // сброс регистра режима
- AT91C_BASE_CAN0->CAN_MR = 0;
- AT91C_BASE_CAN1->CAN_MR = 0;
- // сброс регистра скорости передачи
- AT91C_BASE_CAN0->CAN_BR = 0;
- AT91C_BASE_CAN1->CAN_BR = 0;
-
- // сброс конфигурации и очистка почтовых ящиков
- for(int i=0; i<Mailbox_Number; i++ )
- {
- AT91C_BASE_CAN0_MB_Massive[i]->CAN_MB_MMR = AT91C_CAN_MOT_DIS;
- AT91C_BASE_CAN0_MB_Massive[i]->CAN_MB_MAM = 0;
- AT91C_BASE_CAN0_MB_Massive[i]->CAN_MB_MID = 0;
- AT91C_BASE_CAN0_MB_Massive[i]->CAN_MB_MDL = 0;
- AT91C_BASE_CAN0_MB_Massive[i]->CAN_MB_MDH = 0;
- AT91C_BASE_CAN0_MB_Massive[i]->CAN_MB_MCR = 0;
- AT91C_BASE_CAN0_MB_Massive[i]->CAN_MB_MSR;
-
- AT91C_BASE_CAN1_MB_Massive[i]->CAN_MB_MMR = AT91C_CAN_MOT_DIS;
- AT91C_BASE_CAN1_MB_Massive[i]->CAN_MB_MAM = 0;
- AT91C_BASE_CAN1_MB_Massive[i]->CAN_MB_MID = 0;
- AT91C_BASE_CAN1_MB_Massive[i]->CAN_MB_MDL = 0;
- AT91C_BASE_CAN1_MB_Massive[i]->CAN_MB_MDH = 0;
- AT91C_BASE_CAN1_MB_Massive[i]->CAN_MB_MCR = 0;
- AT91C_BASE_CAN1_MB_Massive[i]->CAN_MB_MSR;
- }
-
- // конфигурация регистра скорости передачи: макс. скорость 1000
- AT91C_BASE_CAN0->CAN_BR = (AT91C_CAN_PHASE2 & (0x4 <<  0))  |
- (AT91C_CAN_PHASE1 & (0x3 <<  4))  |
- (AT91C_CAN_PROPAG & (0x5 <<  8))  |
- (AT91C_CAN_SYNC   & (0x3 << 12))  |
- (AT91C_CAN_BRP    & (0x01 << 16)) |
- (AT91C_CAN_SMP    & (0 << 24));
-
- AT91C_BASE_CAN1->CAN_BR = (AT91C_CAN_PHASE2 & (0x4 <<  0))  |
- (AT91C_CAN_PHASE1 & (0x3 <<  4))  |
- (AT91C_CAN_PROPAG & (0x5 <<  8))  |
- (AT91C_CAN_SYNC   & (0x3 << 12))  |
- (AT91C_CAN_BRP    & (0x01 << 16)) |
- (AT91C_CAN_SMP    & (0 << 24));
- // активация CAN
- AT91C_BASE_CAN0->CAN_MR = AT91C_CAN_CANEN;
- AT91C_BASE_CAN1->CAN_MR = AT91C_CAN_CANEN;
- //------------------------------------------------------------------------------
-
- // инициализация TWI
-
- //активация питания
- AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_TWI;
- // назначение линий ввода/вывода
- TWI_Pin_config();
- AT91F_PIO_CfgOutput(AT91C_BASE_PIOA, I2CCSE_1 | I2CCSE_2 | I2CCSE_3 | I2CCSE_4);
- AT91F_PIO_SetOutput(AT91C_BASE_PIOA, I2CCSE_1 | I2CCSE_2 | I2CCSE_3 | I2CCSE_4);
- AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, WP);
- AT91F_PIO_SetOutput(AT91C_BASE_PIOB, WP);
- // установка частоты TWCK
- TWI_Configure(AT91C_BASE_TWI, TWCK, MCK);
- //------------------------------------------------------------------------------
-
- // инициализация PIT
- AT91C_BASE_PITC->PITC_PIMR = 0xBB2; // 1 ms
- PIT_Enable();
-
- } */
 //------------------------------------------------------------------------------
 // выбор памяти одного из мезонинов
 void Mez_Select(unsigned int MezMemoryLine)
 {
-	
 	AT91F_PIO_SetOutput(AT91C_BASE_PIOA, I2CCSE_1 | I2CCSE_2 | I2CCSE_3 | I2CCSE_4 );
-	
 	AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, MezMemoryLine);
-	
 }
+
 //------------------------------------------------------------------------------
-/*unsigned char Mez_Recognition_old (unsigned int MezMemoryLine, char address)
- {
- int error;
- unsigned char Mez_Type;
-
- //  Mez_Select (MezMemoryLine);
-
- AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, WP);
-
- error = TWI_Read(address, 0x00, &Mez_Type, 1, TWI_LED); // дописано 08.06.10
-
- //  TWI_StartRead (AT91C_BASE_TWI, address, 0x00, 1); // адресацию памяти посмотреть надо
- //  Wait_RHR_Ready ();
- //  Mez_Type = TWI_ReadByte(AT91C_BASE_TWI);
- //  TWI_Stop(AT91C_BASE_TWI);
- //  Wait_TXCOMP ();
-
- AT91F_PIO_SetOutput(AT91C_BASE_PIOB, WP);
-
- return Mez_Type; // проверить по шагам!!!
- }*/
-//------------------------------------------------------------------------------
-unsigned char Mez_Recognition_new(unsigned char MezNum)
+unsigned char Mez_Recognition(unsigned char MezNum)
 {
 	
 	int error;
 	unsigned char Mez_Type;
-	
-//  Mez_Select (MezMemoryLine);
-	
-//  AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, WP);
-	
 	error = MEZ_memory_Read(MezNum, 0x00, 0x00, 1, &Mez_Type);
-//  error = TWI_Read(address, 0x00, &Mez_Type, 1, TWI_LED); // дописано 08.06.10
-	
-	if (error != 1)	// если прочитать не удалось!
-		Mez_Type = 0;
-	
-	return Mez_Type; // проверить по шагам!!!
+	if (error != 1)	Mez_Type = Mez_NOT;
+	return Mez_Type;
 }
-//------------------------------------------------------------------------------
-/*void Mez_1_TT_ISR_TC ()
- {
- }
- //------------------------------------------------------------------------------
- void Mez_2_TT_ISR_TC ()
- {
- }
- //------------------------------------------------------------------------------
- void Mez_3_TT_ISR_TC ()
- {
- }
- //------------------------------------------------------------------------------
- void Mez_4_TT_ISR_TC ()
- {
- }*/
-//------------------------------------------------------------------------------
-/*void MSO_handler (void)
- {
-
- unsigned char Mez_1_type;
- unsigned char Mez_2_type;
- unsigned char Mez_3_type;
- unsigned char Mez_4_type;
-
-
- Mez_PreInit ();
-
- MSO_init ();
-
- Mez_1_type = Mez_Recognition (mezonin_1.I2CCSE, mezonin_1.Mez_Mem_address);
- Mez_2_type = Mez_Recognition (mezonin_2.I2CCSE, mezonin_2.Mez_Mem_address);
- Mez_3_type = Mez_Recognition (mezonin_3.I2CCSE, mezonin_3.Mez_Mem_address);
- Mez_4_type = Mez_Recognition (mezonin_4.I2CCSE, mezonin_4.Mez_Mem_address);
-
-
- Mez_init (Mez_1_type, mezonin_1);
- Mez_init (Mez_2_type, mezonin_2);
- Mez_init (Mez_3_type, mezonin_3);
- Mez_init (Mez_4_type, mezonin_4);
-
-
- for (;;)
- {
- Mez_handler_select (Mez_1_type, mezonin_1);
- Mez_handler_select (Mez_2_type, mezonin_2);
- Mez_handler_select (Mez_3_type, mezonin_3);
- Mez_handler_select (Mez_4_type, mezonin_4);
-
- }
-
- } */
 //------------------------------------------------------------------------------
 void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 {
@@ -263,7 +67,6 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez1->PWM_ptr = AT91C_BASE_PWMC_CH0;
 	Mez1->PWM_ID = AT91C_PWMC_CHID0;
 	Mez1->PWM_Number = 0;
-//	Mez1->PIO_ctrl_ptr    = AT91C_BASE_PIOB;
 	Mez1->Periph_AB = PeriphA;
 	Mez1->LineMDATA.PIO_Line = MDATA_1;
 	Mez1->LineMDATA.PIO_ctrl_ptr = AT91C_BASE_PIOB;
@@ -299,7 +102,6 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez2->PWM_ptr = AT91C_BASE_PWMC_CH1;
 	Mez2->PWM_ID = AT91C_PWMC_CHID1;
 	Mez2->PWM_Number = 1;
-//	Mez2->PIO_ctrl_ptr    = AT91C_BASE_PIOB;
 	Mez2->Periph_AB = PeriphA;
 	Mez2->LineMDATA.PIO_Line = MDATA_2;
 	Mez2->LineMDATA.PIO_ctrl_ptr = AT91C_BASE_PIOB;
@@ -336,7 +138,6 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez3->PWM_ptr = AT91C_BASE_PWMC_CH2;
 	Mez3->PWM_ID = AT91C_PWMC_CHID2;
 	Mez3->PWM_Number = 2;
-//	Mez3->PIO_ctrl_ptr    = AT91C_BASE_PIOB;
 	Mez3->Periph_AB = PeriphA;
 	Mez3->LineMDATA.PIO_Line = MDATA_3;
 	Mez3->LineMDATA.PIO_ctrl_ptr = AT91C_BASE_PIOB;
@@ -372,7 +173,6 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez4->PWM_ptr = AT91C_BASE_PWMC_CH3;
 	Mez4->PWM_ID = AT91C_PWMC_CHID3;
 	Mez4->PWM_Number = 3;
-//	Mez4->PIO_ctrl_ptr    = AT91C_BASE_PIOA;
 	Mez4->Periph_AB = PeriphB;
 	Mez4->LineMDATA.PIO_Line = MDATA_4;
 	Mez4->LineMDATA.PIO_ctrl_ptr = AT91C_BASE_PIOA;
@@ -420,7 +220,6 @@ void Mez_init(int Mezonin_Type, mezonin *MezStruct)
 			break;
 			
 		case Mez_NOT:
-//    default:
 			Mez_NOT_init();
 			break;
 	}
@@ -430,16 +229,9 @@ void Mez_init(int Mezonin_Type, mezonin *MezStruct)
 void Mez_TC_init(mezonin *MezStruct)
 {
 	int j;
-//	for (i=0;i<4;i++)
-//		{
 	for (j = 0; j < 4; j++) {
 		Mezonin_TC[MezStruct->Mez_ID - 1].Channel[j].Value = 0xFF;
 	}
-//		}
-	
-	AT91C_BASE_PMC ->PMC_PCER = 1 << AT91C_ID_PIOB;
-	AT91C_BASE_PMC ->PMC_PCER = 1 << AT91C_ID_PIOA;
-	
 	//конфигурирование ввода-вывода для адресных входов
 	AT91F_PIO_CfgOutput(MezStruct->LineA0.PIO_ctrl_ptr, MezStruct->LineA0.PIO_Line | MezStruct->LineA1.PIO_Line);
 	//Установить в ноль
@@ -454,8 +246,6 @@ void Mez_TU_init(mezonin *MezStruct)
 {
 	unsigned int SPI0_configuration, CS_configuration;
 	int j;
-//	for (i=0;i<4;i++)
-//		{
 	for (j = 0; j < 4; j++) {
 		Mezonin_TU[MezStruct->Mez_ID - 1].Channel[j].Value = 0xFF;
 	}

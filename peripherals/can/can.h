@@ -71,6 +71,17 @@
  #endif*/
 
 #define NUM_MAILBOX_MAX 16
+// Number of receive MB
+#define NB_MB				16
+#define NB_RX_MB			8
+// Number of transmit MB
+#define NB_TX_MB			(NB_MB - NB_RX_MB)
+
+#if (NB_TX_MB < 1)
+#error define less RX MBs, you must have at least 1 TX MB!
+#elif (NB_RX_MB < 1)
+#error define at least 1 RX MBs!
+#endif
 
 //------------------------------------------------------------------------------
 //         Types
@@ -101,20 +112,16 @@ typedef struct
 //------------------------------------------------------------------------------
 //         Exported functions
 //------------------------------------------------------------------------------
-extern unsigned char CAN_Init(unsigned int baudrate);
-extern void CAN_BasicTestSuite(void);
+extern unsigned char CAN_Init(unsigned int baudrate, unsigned int identifier);
 
 void CAN_Handler(unsigned char);
 
 extern void CAN_disable(void);
 extern void CAN_ResetAllMailbox(void);
-extern void CAN_ResetTransfer(CanTransfer *pTransfer);
 extern void CAN_InitMailboxRegisters(CanTransfer *pTransfer);
-extern unsigned char CAN_IsInIdle(CanTransfer *pTransfer);
 
 extern unsigned char CAN_Write(CanTransfer *pTransfer);
 extern unsigned char CAN_Read(CanTransfer *pTransfer);
 
-extern void CAN_BasicTestSuiteWithoutInterrupt(void);
-extern unsigned char CAN_IsInIdle(CanTransfer *pTransfer);
+
 #endif // _CAN_H

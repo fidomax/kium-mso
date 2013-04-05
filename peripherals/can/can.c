@@ -39,6 +39,7 @@
 #include "FreeRTOS.h"
 #include "queue.h"
 #include "task.h"
+#include "constant.h"
 //------------------------------------------------------------------------------
 //         Local definitions
 //------------------------------------------------------------------------------
@@ -195,7 +196,7 @@ void CAN_Handler(unsigned char can_number)
 	unsigned int message_mode;
 	unsigned char numMailbox;
 	portBASE_TYPE xTaskWokenByPost = pdFALSE;
-	
+	vParTestToggleLED(0);
 	if (can_number == 0) {
 		base_can = AT91C_BASE_CAN0;
 		CAN_Mailbox = AT91C_BASE_CAN0_MB0;
@@ -213,6 +214,7 @@ void CAN_Handler(unsigned char can_number)
 
 			can_msr = *(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x10 + (0x20 * numMailbox)));
 			if ((AT91C_CAN_MRDY & can_msr) == AT91C_CAN_MRDY) {
+
 				// Mailbox object type
 				message_mode = ((*(unsigned int*)((unsigned int)CAN_Mailbox + (unsigned int)(0x00 + (0x20 * numMailbox)))) >> 24) & 0x7;
 				if (message_mode == 0) {
@@ -246,9 +248,9 @@ void CAN_Handler(unsigned char can_number)
 	
 	// Now the buffer is empty we can switch context if necessary.  Note that the
 	// name of the yield function required is port specific.
-	if (xTaskWokenByPost) {
-		taskYIELD();
-	}
+//	if (xTaskWokenByPost) {
+//		taskYIELD();
+//	}
 
 }
 //------------------------------------------------------------------------------
@@ -300,32 +302,19 @@ void CAN_InitMailboxRegisters(CanTransfer *pTransfer)
 void CAN_ResetAllMailbox(void)
 {
 	unsigned char i;
-	CanTransfer *pCAN0Transfer = NULL;
-//	CAN_ResetTransfer(pCAN0Transfer);
+	CanTransfer CANTransfer;
 	for (i = 0; i < NUM_MAILBOX_MAX; i++) {
-		pCAN0Transfer->can_number = 0;
-		pCAN0Transfer->mailbox_number = i;
-		pCAN0Transfer->mode_reg = AT91C_CAN_MOT_DIS;
-		pCAN0Transfer->acceptance_mask_reg = 0;
-		pCAN0Transfer->identifier = 0;
-		pCAN0Transfer->data_low_reg = 0x00000000;
-		pCAN0Transfer->data_high_reg = 0x00000000;
-		pCAN0Transfer->control_reg = 0x00000000;
-		CAN_InitMailboxRegisters(pCAN0Transfer);
-	}
-	if (pCAN1Transfer != NULL) {
-//		CAN_ResetTransfer(pCAN1Transfer);
-		for (i = 0; i < NUM_MAILBOX_MAX; i++) {
-			pCAN1Transfer->can_number = 1;
-			pCAN1Transfer->mailbox_number = i;
-			pCAN1Transfer->mode_reg = AT91C_CAN_MOT_DIS;
-			pCAN1Transfer->acceptance_mask_reg = 0;
-			pCAN1Transfer->identifier = 0;
-			pCAN1Transfer->data_low_reg = 0x00000000;
-			pCAN1Transfer->data_high_reg = 0x00000000;
-			pCAN1Transfer->control_reg = 0x00000000;
-			CAN_InitMailboxRegisters(pCAN1Transfer);
-		}
+		CANTransfer.can_number = 0;
+		CANTransfer.mailbox_number = i;
+		CANTransfer.mode_reg = AT91C_CAN_MOT_DIS;
+		CANTransfer.acceptance_mask_reg = 0;
+		CANTransfer.identifier = 0;
+		CANTransfer.data_low_reg = 0x00000000;
+		CANTransfer.data_high_reg = 0x00000000;
+		CANTransfer.control_reg = 0x00000000;
+		CAN_InitMailboxRegisters(&CANTransfer);
+		CANTransfer.can_number = 1;
+		CAN_InitMailboxRegisters(&CANTransfer);
 	}
 }
 
@@ -383,28 +372,15 @@ unsigned char CAN_Write(CanTransfer *pTransfer)
 {
 	AT91PS_CAN base_can;
 	
-	if (pTransfer->state == CAN_RECEIVING) {
-		pTransfer->state = CAN_IDLE;
-	}
-	
-	if (pTransfer->state != CAN_IDLE) {
-		return CAN_STATUS_LOCKED;
-	}
-	
-//    trace_LOG( trace_DEBUG, "CAN_Write\n\r");
-	pTransfer->state = CAN_SENDING;
 	if (pTransfer->can_number == 0) {
 		base_can = AT91C_BASE_CAN0;
-	}
-#ifdef AT91C_BASE_CAN1
-	else {
+	}	else {
 		base_can = AT91C_BASE_CAN1;
 	}
-#endif
 	base_can->CAN_TCR = pTransfer->mailbox_in_use;
 	base_can->CAN_IER = pTransfer->mailbox_in_use;
 	
-	vTaskDelay(20);
+//	vTaskDelay(20);
 	
 	return CAN_STATUS_SUCCESS;
 	
@@ -419,40 +395,17 @@ unsigned char CAN_Write(CanTransfer *pTransfer)
 unsigned char CAN_Read(CanTransfer *pTransfer)
 {
 	AT91PS_CAN base_can;
-	
-	/*    if (pTransfer->state == CAN_RECEIVING)  {
-	 pTransfer->state = CAN_IDLE;
-	 }*/
 
-	if (pTransfer->state != CAN_IDLE) {
-		return CAN_STATUS_LOCKED;
-	}
-	
-//    trace_LOG( trace_DEBUG, "CAN_Read\n\r");
-	pTransfer->state = CAN_RECEIVING;
-	
 	if (pTransfer->can_number == 0) {
 		base_can = AT91C_BASE_CAN0;
-	}
-#ifdef AT91C_BASE_CAN1
-	else {
+	}	else {
 		base_can = AT91C_BASE_CAN1;
 	}
-#endif
+
 	// enable interrupt
-	base_can->CAN_IER = pTransfer->mailbox_in_use;
+	base_can->CAN_IER = 1<<(pTransfer->mailbox_number);
 	
 	return CAN_STATUS_SUCCESS;
-}
-
-//------------------------------------------------------------------------------
-/// Test if CAN is in IDLE state
-/// \param pTransfer can transfer structure
-/// \return return 0 if CAN is in IDLE, otherwise return 1
-//------------------------------------------------------------------------------
-unsigned char CAN_IsInIdle(CanTransfer *pTransfer)
-{
-	return (pTransfer->state != CAN_IDLE);
 }
 
 //------------------------------------------------------------------------------
@@ -464,11 +417,9 @@ void CAN_disable(void)
 	AIC_DisableIT(AT91C_ID_CAN0);
 	// disable all IT
 	AT91C_BASE_CAN0 ->CAN_IDR = 0x1FFFFFFF;
-#if defined AT91C_BASE_CAN1
 	AIC_DisableIT(AT91C_ID_CAN1);
 	// disable all IT
 	AT91C_BASE_CAN1 ->CAN_IDR = 0x1FFFFFFF;
-#endif
 	
 	// Enable Low Power mode
 	AT91C_BASE_CAN0 ->CAN_MR |= AT91C_CAN_LPM;
@@ -557,8 +508,10 @@ unsigned char CAN_BaudRateCalculate(AT91PS_CAN base_CAN, unsigned int baudrate)
 /// \return return 1 if CAN has good baudrate and CAN is synchronized,
 ///         otherwise return 0
 //------------------------------------------------------------------------------
-unsigned char CAN_Init(unsigned int baudrate)
+unsigned char CAN_Init(unsigned int baudrate, unsigned int identifier)
 {
+	CanTransfer canTransfer;
+	int i;
 	
 	// CAN Transmit Serial Data
 #if defined (PINS_CAN_TRANSCEIVER_TXD)
@@ -583,24 +536,20 @@ unsigned char CAN_Init(unsigned int baudrate)
 	
 	// Enable the CAN0 controller peripheral clock
 	AT91C_BASE_PMC ->PMC_PCER = (1 << AT91C_ID_CAN0);
-	
+
 	// disable all IT
 	AT91C_BASE_CAN0 ->CAN_IDR = 0x1FFFFFFF;
-	
+
 	// Enable CANs Transceivers
 #if defined (PIN_CAN_TRANSCEIVER_RXEN)
 	// Disable ultra Low Power mode
 	PIO_Set(&pin_can_transceiver_rxen);
 #endif
 	// Normal Mode (versus Standby mode)
-#if defined (PINS_CAN_TRANSCEIVER_RS)
-	PIO_Clear(&pins_can_transceiver_rs[0]);
-	PIO_Clear(&pins_can_transceiver_rs[1]);
-#endif
-	
+
 	// Enable the interrupt on the interrupt controller
 	AIC_EnableIT(AT91C_ID_CAN0);
-	
+
 	if (CAN_BaudRateCalculate(AT91C_BASE_CAN0, baudrate) == 0) {
 		// Baudrate problem
 		return 0;
@@ -619,6 +568,11 @@ unsigned char CAN_Init(unsigned int baudrate)
 		return 0;
 	}
 
+#if defined (PINS_CAN_TRANSCEIVER_RS)
+	PIO_Clear(&pins_can_transceiver_rs[0]);
+	PIO_Clear(&pins_can_transceiver_rs[1]);
+#endif
+
 	// Reset all mailbox
 	CAN_ResetAllMailbox();
 	
@@ -636,12 +590,35 @@ unsigned char CAN_Init(unsigned int baudrate)
 	| AT91C_CAN_AERR; // (CAN) Acknowledgment Error
 	
 	// Wait for CAN synchronisation
-	if (CAN_Synchronisation(0) == 1) {
-		if (CAN_Synchronisation(1) == 1) {
-			return 1;
-		}
-	}
-	
+	AT91C_BASE_CAN0->CAN_MR = AT91C_CAN_CANEN;
+	AT91C_BASE_CAN1->CAN_MR = AT91C_CAN_CANEN;
+//	CAN_Synchronisation(0);
+//	CAN_Synchronisation(1);
+			canTransfer.acceptance_mask_reg = MaskAdress << PosAdress;
+			canTransfer.identifier = identifier;
+			canTransfer.data_low_reg = 0x00000000;
+			canTransfer.data_high_reg = 0x00000000;
+			canTransfer.control_reg = 0x00000000; // Mailbox Data Length Code
+			//Setup receiving MailBox by MSO address
+			for (i = 0; i < 8; i++) {
+				canTransfer.can_number = 0;
+				canTransfer.mailbox_number = i;
+				canTransfer.mode_reg = (i < (NB_RX_MB - 1)) ? AT91C_CAN_MOT_RX : AT91C_CAN_MOT_RXOVERWRITE;
+				CAN_InitMailboxRegisters(&canTransfer);
+				CAN_Read(&canTransfer);
+				canTransfer.can_number = 1;
+				CAN_InitMailboxRegisters(&canTransfer);
+				CAN_Read(&canTransfer);
+			}
+			canTransfer.mode_reg = AT91C_CAN_MOT_TX	| AT91C_CAN_PRIOR;
+			for (   ; i < NB_MB; i++){
+				canTransfer.can_number = 0;
+				canTransfer.mailbox_number = i;
+				CAN_InitMailboxRegisters(&canTransfer);
+				canTransfer.can_number = 1;
+				CAN_InitMailboxRegisters(&canTransfer);
+			}
+
 	return 0;
 }
 

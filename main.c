@@ -177,30 +177,14 @@ void CanHandler(void *p)
 	
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
-	CAN_Init(1000, &canTransfer_new0, &canTransfer_new1);
+	CAN_Init(1000,AT91C_CAN_MIDE | MSO_Address << PosAdress);
 	
 	//Setup receiving MailBox by MSO address
 	identifier = AT91C_CAN_MIDE | MSO_Address << PosAdress;
-	FillCanPacket(&canTransfer_new0, 1, 1, AT91C_CAN_MOT_RX, MaskAdress << PosAdress, identifier);
-	FillCanPacket(&canTransfer_new1, 0, 1, AT91C_CAN_MOT_RX, MaskAdress << PosAdress, identifier);
-	
-	canTransfer_new0.data_low_reg = 0x00000000;
-	canTransfer_new0.data_high_reg = 0x00000000;
-	canTransfer_new0.control_reg = 0x00000000; // Mailbox Data Length Code
-	canTransfer_new1.data_low_reg = 0x00000000;
-	canTransfer_new1.data_high_reg = 0x00000000;
-	canTransfer_new1.control_reg = 0x00000000; // Mailbox Data Length Code
-	
-	CAN_InitMailboxRegisters(&canTransfer_new0);
-	CAN_InitMailboxRegisters(&canTransfer_new1);
-	
-	CAN_Read(&canTransfer_new0);
-	CAN_Read(&canTransfer_new1);
-	
 	for (;;) {
 		// Wait for the next cycle.
 		if (xQueueReceive( xCanQueue, &Recieve_Message, portMAX_DELAY)) { // пришло CAN сообщение
-		
+			vParTestToggleLED(0);
 			// разбор идентификатора
 			identifier = Recieve_Message.real_Identifier;
 			Type = identifier >> PosType & MaskType;
@@ -236,13 +220,11 @@ void CanHandler(void *p)
 						case identifier_TU :
 							switch (Param) {
 								case 0:
-									//Mez_TT_Calib (&mezonin_my[Channel_Num/4], Channel_Num%4, 1);
 									break;
 								case 1:
 									test23.ID = Channel_Num / 4;
 									test23.Channel = Channel_Num % 4;
 									test23.Value = Recieve_Message.data_low_reg;
-									//Mezonin_TU[Channel_Num/4].Channel[Channel_Num%4].Value = Recieve_Message.data_low_reg;
 									if (xMezTUQueue != 0) {
 										if (xQueueSend( xMezTUQueue, &test23, ( portTickType ) 0 )) {
 										}
@@ -375,16 +357,9 @@ void CanHandler(void *p)
 						case identifier_TT :
 							switch (Param) {
 								case ParamFV :
-									//Channel_Num = 14;
 									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Value;
-									//* ((float *) &(canTransfer0.data_low_reg)) = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
 									canTransfer1.data_high_reg = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].State;
 									break;
-									//case 1:
-									//* ((int *) &(canTransfer0.data_low_reg)) = Mezonin_TT[Channel_Num/4].Channel[Channel_Num%4].Params.MeasTime;
-									//* ((float *) &(canTransfer0.data_low_reg)) = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
-									//canTransfer0.data_high_reg = 0;
-									//break;
 							}
 							
 							break;
@@ -496,16 +471,12 @@ void LedBlinkTask(void *p)
 {
 	portTickType xLastWakeTime;
 	const portTickType xFrequency = 200;
-	
-	// Initialise the xLastWakeTime variable with the current time.
+
 	xLastWakeTime = xTaskGetTickCount();
 	
 	for (;;) {
-		// Wait for the next cycle.
 		vParTestToggleLED(1);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		
-		// Perform action here.
 	}
 	
 }
@@ -577,724 +548,14 @@ void MyTask4(void *p)
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 }
-//------------------------------------------//*//------------------------------------------------
-void MezTT_WriteParam(void *p)
-{
-//	int Mez_1_type;
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-//	unsigned char Mez_Type;
-//	unsigned char Value2;
-//	unsigned char Period;
-//	unsigned char * DataToWrite;
-//	unsigned char    DataToWrite1 [28];
-	int a, Channel_Num;
-	
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
-	
-//	    Mez_Num = p;
-	
-//	Mez_Type = 0x03;
-	
-	Channel_Num = 0;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Params.MeasTime = 20;	//1-ый канал
-	Mezonin_TT[0].Channel[Channel_Num].Params.Mode = 0;
-	/*		Mezonin_TT[0].Channel[Channel_Num].Params.k_max = 1501.15;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.k_min = 233.75;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_max = -1497;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_min = -232;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.Sense = 1;
-	 */Mezonin_TT[0].Channel[Channel_Num].Params.MinD = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxD = 20;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MinF = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxF = 20;
-	
-	/*		Mezonin_TT[0].PerTime = 200;
 
-	 Period = Mezonin_TT[0].PerTime;*/
-
-//	    a = MEZ_memory_Write (Mezonin_TT[0].ID, 0, 0, 1, &Period);
-//	    for (i = 0; i < 4; i++)
-//			{
-	/*				Channel_Num = 0;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[0].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.PerTime = 200;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.k_max = 1499.275;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.k_min = 236.2625;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_max = -3.5;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_min = -1.25;*/
-	/*				if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write (Mezonin_TT[0].ID, 0, 1, 1, &Period);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }*/
-// 			DataToWrite = (unsigned char *) &(Mezonin_TT[0].Channel[Channel_Num].Params); // формировка структуры для первого канала для записи в EEPROM
-	Mezonin_TT[0].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Params), sizeof(TT_Param) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 1, 0x00, sizeof(TT_Param), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Params);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			if (a == -6) {
-				a = MEZ_memory_Write(0, Channel_Num + 1, 0x00, sizeof(TT_Param), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Params);
-				vTaskDelayUntil(&xLastWakeTime, 10);
-			}
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 1;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Params.MeasTime = 20;
-	Mezonin_TT[0].Channel[Channel_Num].Params.Mode = 0;
-	/*    		    Mezonin_TT[0].Channel[Channel_Num].Params.k_max = 1502.325;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.k_min = 235.325;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_max = -1496.5;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_min = -233.5;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.Sense = 1;
-	 */Mezonin_TT[0].Channel[Channel_Num].Params.MinD = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxD = 20;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MinF = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxF = 20;
-	//Mezonin_TT[0].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params, sizeof (TT_Param)-4);
-	
-//    			DataToWrite = (unsigned char *) &(Mezonin_TT[0].Channel[Channel_Num].Params); // формровка структуры для второго канала записи в EEPROM
-	//memcpy(DataToWrite1, DataToWrite,28);
-//    			DataToWrite1 = *DataToWrite;
-	Mezonin_TT[0].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Params), sizeof(TT_Param) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 1, 0x00, sizeof(TT_Param), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Params);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 2;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Params.MeasTime = 20;
-	Mezonin_TT[0].Channel[Channel_Num].Params.Mode = 0;
-	/*    		    Mezonin_TT[0].Channel[Channel_Num].Params.k_max = 1502.5375;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.k_min = 235.5125;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_max = -1494.75;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_min = -233.25;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.Sense = 1;
-	 */Mezonin_TT[0].Channel[Channel_Num].Params.MinD = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxD = 20;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MinF = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxF = 20;
-	//Mezonin_TT[0].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params, sizeof (TT_Param)-4);
-	
-//    			DataToWrite = (unsigned char *) &(Mezonin_TT[0].Channel[Channel_Num].Params); // формровка структуры для третьего канала записи в EEPROM
-	Mezonin_TT[0].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Params), sizeof(TT_Param) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 1, 0x00, sizeof(TT_Param), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Params);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 3;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Params.MeasTime = 20;
-	Mezonin_TT[0].Channel[Channel_Num].Params.Mode = 0;
-	/*    		    Mezonin_TT[0].Channel[Channel_Num].Params.k_max = 1503.375;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.k_min = 237.25;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_max = -1492.5;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.p_min = -238;
-	 Mezonin_TT[0].Channel[Channel_Num].Params.Sense = 1;
-	 */Mezonin_TT[0].Channel[Channel_Num].Params.MinD = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxD = 20;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MinF = 0;
-	Mezonin_TT[0].Channel[Channel_Num].Params.MaxF = 20;
-	//Mezonin_TT[0].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params, sizeof (TT_Param)-4);
-	
-//    			DataToWrite = (unsigned char *) &(Mezonin_TT[0].Channel[Channel_Num].Params); // формровка структуры для третьего канала записи в EEPROM
-	Mezonin_TT[0].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Params), sizeof(TT_Param) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 1, 0x00, sizeof(TT_Param), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Params);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	/*    		    Channel_Num = 0;  // номер канала, с которым идет работа в данный момент*/ // было
-	/*    			Mezonin_TT[1].PerTime = 200;
-
-	 Period = Mezonin_TT[1].PerTime;*/
-
-	/*    		    Mezonin_TT[1].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_max = 1498.1625;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_min = 235.6;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_max = 49.75;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_min = 8;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 */// было
-	/*				if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write (Mezonin_TT[1].ID, 0, 1, 1, &Period);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }*/
-
-//    			DataToWrite = (unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-	/*    			if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(1 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-	 Channel_Num = 1;  // номер канала, с которым идет работа в данный момент
-
-
-	 Mezonin_TT[1].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_max = 1501.1;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_min = 237.25;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_max = -2;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_min = 5;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //    			DataToWrite = (unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(1 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 2;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[1].Channel[Channel_Num].Params.MeasTime = 25;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_max = 1500.9625;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_min = 237.375;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_max = 49.75;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_min = 7.5;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //    			DataToWrite = (unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(1 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 3;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[1].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_max = 1502.9375;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.k_min = 239.2;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_max = 49.25;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.p_min = 8;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[1].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //    			DataToWrite = (unsigned char *) &Mezonin_TT[1].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(1 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 0;  // номер канала, с которым идет работа в данный момент
-	 */// было
-	/*    			Mezonin_TT[2].PerTime = 200;
-
-	 Period = Mezonin_TT[2].PerTime;*/
-
-	/*    		    Mezonin_TT[2].Channel[Channel_Num].Params.MeasTime = 25;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_max = 1501.7125;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_min = 235.8875;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_max = 87.75;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_min = 13.25;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 */// было
-	/*				if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write (Mezonin_TT[2].ID, 0, 1, 1, &Period);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }*/
-
-//    			DataToWrite = (unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-	/*    			if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(2 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 1;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[2].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_max = 1502.3125;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_min = 237.3125;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_max = 92.75;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_min = 14.75;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //    			DataToWrite = (unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(2 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 2;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[2].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_max = 1502.3125;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_min = 237.3125;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_max = 92.75;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_min = 14.75;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //  			DataToWrite = (unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(2 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 3;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[2].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_max = 1502.3125;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.k_min = 237.3125;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_max = 92.75;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.p_min = 14.75;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[2].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //  			DataToWrite = (unsigned char *) &Mezonin_TT[2].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(2 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 0;  // номер канала, с которым идет работа в данный момент
-
-
-	 Mezonin_TT[3].Channel[Channel_Num].Params.MeasTime = 20;	//1-ый канал
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_max = 1499.6125;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_min = 236.25;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_max = -1492.25;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_min = -235;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 */// было
-	/*    			Mezonin_TT[3].PerTime = 200;
-
-	 Period = Mezonin_TT[3].PerTime;*/
-
-	/*    					if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write (Mezonin_TT[3].ID, 0, 1, 1, &Period);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }*/
-	//  					DataToWrite = (unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params; // формировка структуры для первого канала для записи в EEPROM
-	/*    					if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(3 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 1;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[3].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_max = 1501.7625;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_min = 237.85;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_max = -1494.25;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_min = -238;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //  	    			DataToWrite = (unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params; // формровка структуры для второго канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(3 , Channel_Num +1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 2;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[3].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_max = 1507.725;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_min = 247.5875;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_max = -1477.5;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_min = -242.75;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //  	    			DataToWrite = (unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(3 , Channel_Num +1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 Channel_Num = 3;  // номер канала, с которым идет работа в данный момент
-
-	 Mezonin_TT[3].Channel[Channel_Num].Params.MeasTime = 20;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Mode = 0;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_max = 1507.925;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.k_min = 248.325;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_max = -1469.5;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.p_min = -242.5;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.Sense = 1;
-	 Mezonin_TT[3].Channel[Channel_Num].Params.CRC = Crc16((unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params, sizeof (TT_Param) - sizeof (unsigned short));
-	 //  	    			DataToWrite = (unsigned char *) &Mezonin_TT[3].Channel[Channel_Num].Params; // формровка структуры для третьего канала записи в EEPROM
-
-	 if (xSemaphore != NULL)
-	 {
-	 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-	 {
-	 a = MEZ_memory_Write(3 , Channel_Num + 1, 0x00, sizeof (TT_Param), (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Params);
-	 vTaskDelayUntil( &xLastWakeTime, 10);
-	 xSemaphoreGive( xSemaphore );
-	 }
-	 }
-
-	 //	    }
-
-	 */
-	for (;;) {
-		/*			if (xSemaphore != NULL)
-		 {
-		 if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE)
-		 {
-		 for (i=0;i<3;i++)
-		 //								DataToWrite1[i] = i+10;
-		 a = MEZ_memory_Write(i , 0, 0x00, 1, &Mez_Type);
-		 vTaskDelayUntil( &xLastWakeTime, 10);
-		 xSemaphoreGive( xSemaphore );
-		 }
-		 }*/
-
-		// Wait for the next cycle.
-		/*            Value2 = Switch2_Read();
-		 if (Value2 == 2)
-		 {
-		 //            	for (i=0;i<2;i++)
-		 //					{
-		 if (xSemaphore != NULL )
-		 {
-		 if( xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE )
-		 {
-		 //      			for (i=0;i<20;i++)
-		 //      				DataToWrite[i] = i+10;
-		 //            				i = 1;
-		 for (i=0;i<4;i++)
-		 {
-		 //            				a = MEZ_memory_Write (Mezonin_TT[0].ID, 0, 0, 1, &Mez_Type);
-		 a = MEZ_memory_Write(0 , i+1, 0x00, sizeof (TT_Param), DataToWrite);
-		 vTaskDelayUntil( &xLastWakeTime, 10);
-
-		 }
-		 xSemaphoreGive( xSemaphore );
-		 }
-		 }
-		 //					}
-		 }
-		 if (Value2 == 1)
-		 {
-		 //    		    Mez_handler_select (Mez_1_type, &mezonin_my[0]);
-		 }*/
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		// Perform action here.
-	}
-	
-}
-//------------------------------------------//*//------------------------------------------------
-//Задача записи порогов в EEPROM
-//------------------------------------------//*//------------------------------------------------
-void MezTT_WriteLevel(void *p)
-{
-//	int  Mez_1_type;
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-//	unsigned char Mez_Type;
-//	unsigned char * DataToWrite;
-	int a, Channel_Num;
-	
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
-	
-//	    Mez_Num = p;
-	
-//	    Mez_Type = 0x03;
-	
-	Channel_Num = 0;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_P_Level = 20;	//1-ый канал
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_P_Level = 40;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_A_Level = 15;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_A_Level = 45;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Sense = 1.0;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Levels), sizeof(TT_Level) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 9, 0x00, sizeof(TT_Level), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Levels);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			if (a == -6) {
-				a = MEZ_memory_Write(0, Channel_Num + 9, 0x00, sizeof(TT_Level), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Levels);
-				vTaskDelayUntil(&xLastWakeTime, 10);
-			}
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 1;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_P_Level = 20;	//2-ый канал
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_P_Level = 40;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_A_Level = 15;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_A_Level = 45;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Sense = 1.0;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Levels), sizeof(TT_Level) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 9, 0x00, sizeof(TT_Level), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Levels);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 2;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_P_Level = 20;	//3-ый канал
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_P_Level = 40;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_A_Level = 15;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_A_Level = 45;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Sense = 1.0;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Levels), sizeof(TT_Level) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 9, 0x00, sizeof(TT_Level), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Levels);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 3;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_P_Level = 20;	//2-ый канал
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_P_Level = 40;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Min_A_Level = 15;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Max_A_Level = 45;
-	Mezonin_TT[0].Channel[Channel_Num].Levels.Sense = 1.0;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Levels.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Levels), sizeof(TT_Level) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 9, 0x00, sizeof(TT_Level), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Levels);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	for (;;) {
-		
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		// Perform action here.
-	}
-	
-}
-
-//------------------------------------------//*//------------------------------------------------
-//Задача записи коэффициентов в EEPROM
-//------------------------------------------//*//------------------------------------------------
-void MezTT_WriteCoeff(void *p)
-{
-//	int  Mez_1_type;
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-//	unsigned char Mez_Type;
-	
-//	unsigned char * DataToWrite;
-	int a, Channel_Num;
-	
-	// Initialise the xLastWakeTime variable with the current time.
-	xLastWakeTime = xTaskGetTickCount();
-	
-//	    Mez_Num = p;
-	
-//	    Mez_Type = 0x03;
-	
-	Channel_Num = 0;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_max = 1501.15;	//1-ый канал
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_min = 233.75;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_max = -1497;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_min = -232;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Coeffs), sizeof(TT_Coeff) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 5, 0x00, sizeof(TT_Coeff), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Coeffs);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			if (a == -6) {
-				a = MEZ_memory_Write(0, Channel_Num + 5, 0x00, sizeof(TT_Coeff), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Coeffs);
-				vTaskDelayUntil(&xLastWakeTime, 10);
-			}
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 1;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_max = 1502.325;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_min = 235.325;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_max = -1496.5;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_min = -233.5;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Coeffs), sizeof(TT_Coeff) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 5, 0x00, sizeof(TT_Coeff), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Coeffs);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 2;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_max = 1502.5375;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_min = 235.325;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_max = -1494.75;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_min = -233.25;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Coeffs), sizeof(TT_Coeff) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 5, 0x00, sizeof(TT_Coeff), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Coeffs);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	Channel_Num = 3;  // номер канала, с которым идет работа в данный момент
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_max = 1503.375;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.k_min = 235.325;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_max = -1492.5;
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.p_min = -233.25;
-	
-	Mezonin_TT[0].Channel[Channel_Num].Coeffs.CRC = Crc16((unsigned char *)&(Mezonin_TT[0].Channel[Channel_Num].Coeffs), sizeof(TT_Coeff) - sizeof(unsigned short));
-	
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-			a = MEZ_memory_Write(0, Channel_Num + 5, 0x00, sizeof(TT_Coeff), (unsigned char *)&Mezonin_TT[0].Channel[Channel_Num].Coeffs);
-			vTaskDelayUntil(&xLastWakeTime, 10);
-			xSemaphoreGive( xTWISemaphore);
-		}
-	}
-	
-	for (;;) {
-		
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		// Perform action here.
-	}
-	
-}
 //------------------------------------------//*//------------------------------------------------
 void Mez_TC_Task(void *p)
 {
 	portTickType xLastWakeTime;
 	const portTickType xFrequency = 200;
 	int Mez_num;
-	
-	// Initialise the xLastWakeTime variable with the current time.
+
 	xLastWakeTime = xTaskGetTickCount();
 	
 	Mez_num = (int)p;
@@ -1309,17 +570,14 @@ void Mez_TU_Task(void *p)
 	portTickType xLastWakeTime;
 	const portTickType xFrequency = 200;
 	int Mez_num;
-	
-	// Initialise the xLastWakeTime variable with the current time.
+
 	xLastWakeTime = xTaskGetTickCount();
 	
 	Mez_num = (int)p;
 	for (;;) {
 		Mez_TU_handler(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		// Perform action here.
 	}
-	
 }
 //------------------------------------------//*//------------------------------------------------
 void Mez_TT_Task(void *p)
@@ -1330,10 +588,9 @@ void Mez_TT_Task(void *p)
 	xLastWakeTime = xTaskGetTickCount();
 	Mez_Num = (int)p;
 	for (;;) {
-		Mez_TT_handler(&mezonin_my[Mez_Num]/*, &Mezonin_TT[Mez_num]*/);
+		Mez_TT_handler(&mezonin_my[Mez_Num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
-	
 }
 //------------------------------------------//*//-----------------------------------------------
 void Mez_TP_Task(void *p)
@@ -1341,15 +598,13 @@ void Mez_TP_Task(void *p)
 	portTickType xLastWakeTime;
 	const portTickType xFrequency = 200;
 	int Mez_num;
-	
-	// Initialise the xLastWakeTime variable with the current time.
+
 	xLastWakeTime = xTaskGetTickCount();
 	
 	Mez_num = (int)p;
 	for (;;) {
 		Mez_TP_Task(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-		// Perform action here.
 	}
 	
 }
@@ -1372,26 +627,13 @@ void Mez_TI_Task(void *p)
 //------------------------------------------//*//------------------------------------------------
 void MezValue(void *p)
 {
-//	portTickType xLastWakeTime;
-//	const portTickType xFrequency = 200;
-	
 	unsigned int Count;
-//    struct _Mez_Value	*rxValue;
-//	int Dev_Num = 1;
 	unsigned int identifier;
 	Mez_Value Mez_V;
 	int ChannelNumber;
-//	int status;
 	float tempTT, temp1TT;
 	unsigned int ValueTC_temp, StateTC_temp/*,temp1,temp2*/;
 	int n, i;
-//    CANMessage m;
-	
-//    vTaskDelay(1000);
-	
-//    xLastWakeTime = xTaskGetTickCount();
-	
-	CAN_Init(1000, &canTransfer0, &canTransfer1);
 	
 	for (;;) {
 		if (xMezQueue != 0) {
@@ -1400,8 +642,6 @@ void MezValue(void *p)
 					case Mez_TC:
 						ValueTC_temp = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
 						StateTC_temp = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State;
-//    			    	temp1 = Mez_V.Value & 1;
-//    			    	temp2 = Mez_V.Value >> 1;
 						if ((ValueTC_temp != (Mez_V.Value & 1)) || (StateTC_temp != (Mez_V.Value >> 1))) // если ТС изменился
 						{
 							Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value = Mez_V.Value & 1;
@@ -1418,11 +658,6 @@ void MezValue(void *p)
 									break;
 								}
 							}
-							//tt[c]=n;
-							//c++;
-							// для поиска свободного мэйлбокса
-							
-							//FillCanPacket(&canTransfer1, 0, n, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 							FillCanPacket(&canTransfer1, 1, n, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 							
 							canTransfer1.data_low_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
@@ -1430,18 +665,6 @@ void MezValue(void *p)
 							canTransfer1.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
 							CAN_InitMailboxRegisters(&canTransfer1);
 							CAN_Write(&canTransfer1);
-							/*    						m.cob_id=identifier;
-							 m.len=8;
-							 m.data_low_reg=canTransfer1.data_low_reg;
-							 m.data_high_reg=canTransfer1.data_high_reg;
-							 canSend(&m);*/
-
-							/*    						status = CAN_Write (&canTransfer0);
-							 if (status!=0)
-							 {
-							 vTaskDelay(20);
-							 CAN_Write (&canTransfer0);
-							 }*/
 
 							CAN_ResetTransfer(&canTransfer1);
 							
@@ -1455,11 +678,9 @@ void MezValue(void *p)
 							CAN_ResetTransfer(&canTransfer0);
 						}
 						
-//    			      Mez_TC_init (MezStruct);
 						break;
 						
 					case Mez_TU:
-//    			      Mez_TU_init (MezStruct);
 						break;
 						
 					case Mez_TT:
@@ -1469,18 +690,11 @@ void MezValue(void *p)
 						// анализировать состояние
 						if (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Max_P_Level || Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value < Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Min_P_Level) {
 							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0x10; // предупредительный порог
-							//else
-							//Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0;	  // норма
 							if (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Max_A_Level || Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value < Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Min_A_Level)
 								Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0x11; // аварийный порог
 						} else
 							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0; // норма
-							
-						//if (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Max_Value ||
-						//Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value < Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Min_Value)
-						//Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0x0A; // аварийный порог
-						//else
-						//Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0;	  // норма
+
 						
 						if (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Params.Mode == 0x04)
 							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0x04; // выключен
@@ -1489,7 +703,7 @@ void MezValue(void *p)
 						temp1TT = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue - Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
 						
 						if (tempTT > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Sense || temp1TT > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Sense || Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State == 0x0A || Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State == 0x10 || Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State == 0x11)
-//    			    	if (abs (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value - Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue) > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Params.Sense) // если ТТ изменилась
+
 						{
 							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
 							ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
@@ -1503,9 +717,7 @@ void MezValue(void *p)
 									break;
 								}
 							}
-							// для поиска свободного мэйлбокса
-							//tt[c]=n;
-							//c++;
+
 							FillCanPacket(&canTransfer1, 1, n, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 							
 							*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
@@ -1513,18 +725,7 @@ void MezValue(void *p)
 							canTransfer1.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
 							CAN_InitMailboxRegisters(&canTransfer1);
 							CAN_Write(&canTransfer1);
-							/*    						m.cob_id=identifier;
-							 m.len=8;
-							 m.data_low_reg=canTransfer1.data_low_reg;
-							 m.data_high_reg=canTransfer1.data_high_reg;
-							 canSend(&m);*/
 
-							/*							status = CAN_Write (&canTransfer0);
-							 if (status!=0)
-							 {
-							 vTaskDelay(20);
-							 CAN_Write (&canTransfer0);
-							 }*/
 
 							CAN_ResetTransfer(&canTransfer1);
 							
@@ -1537,38 +738,24 @@ void MezValue(void *p)
 							CAN_ResetTransfer(&canTransfer0);
 							
 						}
-						/*    			    	NewTT = Mez_TT_Frequency (Count , Mez_V.Channel + 1, Mez_V.ID); // настоящее значение физической величины
 
-						 Value_temp = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value; // предыдущее значение
-						 State_temp = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State; // предыдущее состояние
-
-						 if ( abs(Value_temp - NewTT) > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Params.Sense )*/
-
-//    			    	Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 1;
-//    			    	Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value = Mez_TT_Frequency (Count , Mez_V.Channel + 1, Mez_V.ID);
-//    			    	Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value = Mez_V.Value;  // получение значения физической величины из очереди
-//    			    	Real_Value.Value = Mez_TT_Frequency (Channel_V , /*Mezonin_TT*/ChannelNumber, MEZ_ID); //
 						break;
 						
 					case Mez_TP:
-//    			      Mez_TP_init (MezStruct);
+
 						break;
 						
 					case Mez_TI:
-//    			      Mez_TI_init (MezStruct);
+
 						break;
 						
 					case Mez_NOT:
-						//    default:
-//    			      Mez_NOT_init ();
+
 						break;
 				}
-//		    	Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value = Mez_V.Value;  // получение значения физической величины из очереди
-				
-//    			Mezonin_TT[0].Channel[3].Value = 10;
+
 			}
 		}
-//    	vTaskDelayUntil( &xLastWakeTime, xFrequency );
 	}
 }
 //------------------------------------------//*//------------------------------------------------
@@ -1591,7 +778,7 @@ void MezRec(void *p) // распознование типа мезонина
 		Mezonin_TC[i].ID = i;
 		if (xTWISemaphore != NULL) {
 			if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
-				mezonin_my[i].Mez_Type = Mez_Recognition_new(i); // Определение типа мезонина
+				mezonin_my[i].Mez_Type = Mez_Recognition(i); // Определение типа мезонина
 				xSemaphoreGive(xTWISemaphore);
 			}
 		}
@@ -1646,7 +833,7 @@ void MezRec(void *p) // распознование типа мезонина
 				
 			case Mez_TT:
 				GreenLeds |= LED_ON(i);
-				if ((xTWISemaphore != NULL)/* && (mezonin_my[i].Mez_Type ==3)*/) {
+				if ((xTWISemaphore != NULL)) {
 					if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
 						if (Get_TTParams(&Mezonin_TT[i]) || Get_TTCoeffs(&Mezonin_TT[i]) || Get_TTLevels(&Mezonin_TT[i]) == 0) {
 							xTaskCreate( Mez_TT_Task, ( signed portCHAR * )"MEZ_TT_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
@@ -1694,14 +881,6 @@ void MezRec(void *p) // распознование типа мезонина
 	
 	xTaskCreate( CanHandler, ( signed portCHAR * )"CanHandler", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
 	vTaskDelete(*((xTaskHandle *)p));
-	/*	if (xSemaphoreTake( xSemaphore, ( portTickType ) 10 ) == pdTRUE) {
-	 if (Value != Mez_TT) {
-	 Value = Mez_TT;
-	 a = MEZ_memory_Write(0, 0x00, 0x00, 1, &Value); // присвоение мезонину типа ТT
-	 }
-	 xSemaphoreGive( xSemaphore);
-	 }*/
-
 }
 //------------------------------------------//*//------------------------------------------------
 /*
@@ -1755,6 +934,7 @@ static void prvSetupHardware(void)
 
 	AT91C_BASE_PMC ->PMC_PCER = 1 << AT91C_ID_PIOA;
 	AT91C_BASE_PMC ->PMC_PCER = 1 << AT91C_ID_PIOB;
+
 	AT91C_BASE_PMC ->PMC_PCER = 1 << AT91C_ID_TWI;
 	
 	AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, WP );
@@ -1810,9 +990,9 @@ void vApplicationTickHook(void)
 		}
 		
 	}
-	if (PWM)
+	if (PWM) {
 		AT91C_BASE_PWMC ->PWMC_DIS = PWM;
-	
+	}
 	for (i = 0; i < 4; i++) {
 		if (mezonin_my[i].PWM_ID & PWM)
 			xSemaphoreGiveFromISR( mezonin_my[i].xSemaphore, &xTaskWoken);
