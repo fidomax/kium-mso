@@ -169,28 +169,28 @@ void PCA9532_init(void)
 void CanHandler(void *p)
 {
 	portTickType xLastWakeTime;
-	unsigned int identifier;
+//	unsigned int identifier;
 	unsigned int Type, Priority, Channel_Num, Param;
-	int a, canID;
+	int a;
 	Mez_Value test23;
-	Message Recieve_Message;
+	Message Recieve_Message,Send_Message;
 	
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 	CAN_Init(1000,AT91C_CAN_MIDE | MSO_Address << PosAdress);
 	
 	//Setup receiving MailBox by MSO address
-	identifier = AT91C_CAN_MIDE | MSO_Address << PosAdress;
+//	identifier = AT91C_CAN_MIDE | MSO_Address << PosAdress;
 	for (;;) {
 		// Wait for the next cycle.
 		if (xQueueReceive( xCanQueue, &Recieve_Message, portMAX_DELAY)) { // пришло CAN сообщение
 			vParTestToggleLED(0);
 			// разбор идентификатора
-			identifier = Recieve_Message.real_Identifier;
-			Type = identifier >> PosType & MaskType;
-			Priority = identifier >> PosPriority & MaskPriority;
-			Channel_Num = identifier >> PosChannel & MaskChannel;
-			Param = identifier & MaskParam;
+			Type = Recieve_Message.real_Identifier >> PosType & MaskType;
+			Priority = Recieve_Message.real_Identifier >> PosPriority & MaskPriority;
+			Channel_Num = Recieve_Message.real_Identifier >> PosChannel & MaskChannel;
+			Param = Recieve_Message.real_Identifier & MaskParam;
+			Send_Message.canID=Recieve_Message.canID;
 			
 			switch (Priority) {
 				case priority_V :
@@ -349,16 +349,17 @@ void CanHandler(void *p)
 					break;
 					
 				case priority_R : {
-					identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress | Channel_Num << PosChannel | Param; // составление идентификатора для посылки
-					canID = Recieve_Message.canID;	// номер CAN
-					FillCanPacket(&canTransfer1, canID, 3, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
+					Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress | Channel_Num << PosChannel | Param; // составление идентификатора для посылки
+					//identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress | Channel_Num << PosChannel | Param; // составление идентификатора для посылки
+//					canID = Recieve_Message.canID;	// номер CAN0
+//					FillCanPacket(&canTransfer1, canID, 3, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 					
 					switch (Type) {
 						case identifier_TT :
 							switch (Param) {
 								case ParamFV :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Value;
-									canTransfer1.data_high_reg = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].State;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Value;
+									Send_Message.data_high_reg = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].State;
 									break;
 							}
 							
@@ -366,8 +367,8 @@ void CanHandler(void *p)
 						case identifier_TC :
 							switch (Param) {
 								case ParamTC :
-									canTransfer1.data_low_reg = Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Value;
-									canTransfer1.data_high_reg = Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].State;
+									Send_Message.data_low_reg = Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Value;
+									Send_Message.data_high_reg = Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].State;
 									break;
 							}
 							
@@ -376,28 +377,28 @@ void CanHandler(void *p)
 						case identifier_ParamTT :
 							switch (Param) {
 								case ParamMode :
-									*((int *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode;
-									canTransfer1.data_high_reg = 0;
+									*((int *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamTime :
-									*((int *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MeasTime;
-									canTransfer1.data_high_reg = 0;
+									*((int *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MeasTime;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMinD :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MinD;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MinD;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMaxD :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MaxD;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MaxD;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMinFV :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MinF;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MinF;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMaxFV :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MaxF;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MaxF;
+									Send_Message.data_high_reg = 0;
 									break;
 							}
 							break;
@@ -405,24 +406,24 @@ void CanHandler(void *p)
 						case identifier_Level :
 							switch (Param) {
 								case ParamMinPred :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_P_Level;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_P_Level;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMaxPred :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_P_Level;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_P_Level;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMinAvar :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_A_Level;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_A_Level;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMaxAvar :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_A_Level;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_A_Level;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamSense :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Sense;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Sense;
+									Send_Message.data_high_reg = 0;
 									break;
 							}
 							break;
@@ -430,29 +431,29 @@ void CanHandler(void *p)
 						case identifier_Coeff :
 							switch (Param) {
 								case ParamKmin :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.k_min;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.k_min;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamKmax :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.k_max;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.k_max;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamPmin :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.p_min;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.p_min;
+									Send_Message.data_high_reg = 0;
 									break;
 								case ParamPmax :
-									*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.p_max;
-									canTransfer1.data_high_reg = 0;
+									*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.p_max;
+									Send_Message.data_high_reg = 0;
 									break;
 							}
 							break;
 							
 					}
-					canTransfer1.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
-					CAN_InitMailboxRegisters(&canTransfer1);
-					CAN_Write(&canTransfer1);
-					CAN_ResetTransfer(&canTransfer1);
+//					Send_Message.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
+//					CAN_InitMailboxRegisters(&Send_Message);
+					CAN_Write(&Send_Message);
+//					CAN_ResetTransfer(&Send_Message);
 				}
 					break;
 				case priority_N :
@@ -460,9 +461,9 @@ void CanHandler(void *p)
 					break;
 			}
 			
-			vParTestToggleLED(0);
-			CAN_ResetTransfer(&canTransfer_new1);
-			CAN_ResetTransfer(&canTransfer_new0);
+//			vParTestToggleLED(0);
+//			CAN_ResetTransfer(&canTransfer_new1);
+//			CAN_ResetTransfer(&canTransfer_new0);
 		}
 	}
 }
@@ -628,11 +629,12 @@ void Mez_TI_Task(void *p)
 void MezValue(void *p)
 {
 	unsigned int Count;
-	unsigned int identifier;
+//	unsigned int identifier;
 	Mez_Value Mez_V;
 	int ChannelNumber;
 	float tempTT, temp1TT;
 	unsigned int ValueTC_temp, StateTC_temp/*,temp1,temp2*/;
+	Message Send_Message;
 	int n, i;
 	
 	for (;;) {
@@ -648,34 +650,24 @@ void MezValue(void *p)
 							Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State = Mez_V.Value >> 1; // доработать со сдвигами
 							
 							ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-							identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TC << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamFV; // составление идентификатора для посылки
+							Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TC << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamFV; // составление идентификатора для посылки
 							
-							n = 0;
+	/*						n = 0;
 							while (!n) {
 								for (i = 12; i < 16; i++) {
 									AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((unsigned int)AT91C_BASE_CAN0_MB0 + (unsigned int)(0x20 * i));
 									if ((CAN_Mailbox->CAN_MB_MSR & AT91C_CAN_MRDY)|| ((CAN_Mailbox->CAN_MB_MMR & AT91C_CAN_MOT)==0))n=i;
 									break;
 								}
-							}
-							FillCanPacket(&canTransfer1, 1, n, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
+							}*/
 							
-							canTransfer1.data_low_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
-							canTransfer1.data_high_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State;
-							canTransfer1.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
-							CAN_InitMailboxRegisters(&canTransfer1);
-							CAN_Write(&canTransfer1);
+							Send_Message.data_low_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
+							Send_Message.data_high_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State;
+							Send_Message.canID = 0;
 
-							CAN_ResetTransfer(&canTransfer1);
-							
-							FillCanPacket(&canTransfer0, 0, n, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
-							
-							canTransfer0.data_low_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
-							canTransfer0.data_high_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State;
-							canTransfer0.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
-							CAN_InitMailboxRegisters(&canTransfer0);
-							CAN_Write(&canTransfer0);
-							CAN_ResetTransfer(&canTransfer0);
+							CAN_Write(&Send_Message);
+							Send_Message.canID = 1;
+							CAN_Write(&Send_Message);
 						}
 						
 						break;
@@ -707,35 +699,24 @@ void MezValue(void *p)
 						{
 							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
 							ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-							identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TT << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamTC; // составление идентификатора для посылки
+							Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << 26 | identifier_TT << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamTC; // составление идентификатора для посылки
 							
-							n = 0;
+	/*						n = 0;
 							while (!n) {
 								for (i = 12; i < 16; i++) {
 									AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((unsigned int)AT91C_BASE_CAN0_MB0 + (unsigned int)(0x20 * i));
 									if ((CAN_Mailbox->CAN_MB_MSR & AT91C_CAN_MRDY)|| ((CAN_Mailbox->CAN_MB_MMR & AT91C_CAN_MOT)==0))n=i;
 									break;
 								}
-							}
+							}*/
 
-							FillCanPacket(&canTransfer1, 1, n, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
-							
-							*((float *)&(canTransfer1.data_low_reg)) = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
-							canTransfer1.data_high_reg = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State;
-							canTransfer1.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
-							CAN_InitMailboxRegisters(&canTransfer1);
-							CAN_Write(&canTransfer1);
+							*((float *)&(Send_Message.data_low_reg)) = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
+							Send_Message.data_high_reg = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State;
+							Send_Message.canID = 0;
 
-
-							CAN_ResetTransfer(&canTransfer1);
-							
-							FillCanPacket(&canTransfer0, 0, n, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
-							*((float *)&(canTransfer0.data_low_reg)) = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
-							canTransfer0.data_high_reg = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State;
-							canTransfer0.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
-							CAN_InitMailboxRegisters(&canTransfer0);
-							CAN_Write(&canTransfer0);
-							CAN_ResetTransfer(&canTransfer0);
+							CAN_Write(&Send_Message);
+							Send_Message.canID = 1;
+							CAN_Write(&Send_Message);
 							
 						}
 

@@ -196,7 +196,6 @@ void CAN_Handler(unsigned char can_number)
 	unsigned int message_mode;
 	unsigned char numMailbox;
 	portBASE_TYPE xTaskWokenByPost = pdFALSE;
-	vParTestToggleLED(0);
 	if (can_number == 0) {
 		base_can = AT91C_BASE_CAN0;
 		CAN_Mailbox = AT91C_BASE_CAN0_MB0;
@@ -248,9 +247,9 @@ void CAN_Handler(unsigned char can_number)
 	
 	// Now the buffer is empty we can switch context if necessary.  Note that the
 	// name of the yield function required is port specific.
-//	if (xTaskWokenByPost) {
-//		taskYIELD();
-//	}
+	if (xTaskWokenByPost) {
+		vTaskSwitchContext();
+	}
 
 }
 //------------------------------------------------------------------------------
@@ -368,7 +367,7 @@ static unsigned char CAN_Synchronisation(unsigned char can_number)
 /// \return return CAN_STATUS_SUCCESS if command passed, otherwise
 ///         return CAN_STATUS_LOCKED
 //------------------------------------------------------------------------------
-unsigned char CAN_Write(CanTransfer *pTransfer)
+unsigned char old_CAN_Write(CanTransfer *pTransfer)
 {
 	AT91PS_CAN base_can;
 	
@@ -386,6 +385,41 @@ unsigned char CAN_Write(CanTransfer *pTransfer)
 	
 }
 
+unsigned char CAN_Write(Message *CanMessage)
+{
+	AT91PS_CAN base_can;
+	unsigned int num = START_TX_MB;
+	AT91PS_CAN_MB mb_ptr;
+	if (CanMessage->canID == 0) {
+		base_can = AT91C_BASE_CAN0;
+		mb_ptr = AT91C_BASE_CAN0_MB0+START_TX_MB;
+	}	else {
+		base_can = AT91C_BASE_CAN1;
+		mb_ptr = AT91C_BASE_CAN1_MB0+START_TX_MB;
+	}
+
+	while (num) {
+
+		for (num = START_TX_MB; num < NB_MB; num++, mb_ptr++) {	// Search the first free MB
+			if (mb_ptr->CAN_MB_MSR & AT91C_CAN_MRDY) {
+				mb_ptr->CAN_MB_MMR = AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR;
+				mb_ptr->CAN_MB_MDL = CanMessage->data_low_reg;
+				mb_ptr->CAN_MB_MDH = CanMessage->data_high_reg;
+				mb_ptr->CAN_MB_MCR = (AT91C_CAN_MDLC & (0x8 << 16));
+				mb_ptr->CAN_MB_MID = CanMessage->real_Identifier;
+
+				base_can->CAN_TCR = 1 << num; //mask;
+				num = 0;
+				break;
+			}
+
+		}
+	}
+
+
+	return CAN_STATUS_SUCCESS;
+
+}
 //------------------------------------------------------------------------------
 /// Read a CAN transfer
 /// \param pTransfer can transfer structure
@@ -590,17 +624,17 @@ unsigned char CAN_Init(unsigned int baudrate, unsigned int identifier)
 	| AT91C_CAN_AERR; // (CAN) Acknowledgment Error
 	
 	// Wait for CAN synchronisation
-	AT91C_BASE_CAN0->CAN_MR = AT91C_CAN_CANEN;
-	AT91C_BASE_CAN1->CAN_MR = AT91C_CAN_CANEN;
-//	CAN_Synchronisation(0);
-//	CAN_Synchronisation(1);
+//	AT91C_BASE_CAN0->CAN_MR = AT91C_CAN_CANEN;
+//	AT91C_BASE_CAN1->CAN_MR = AT91C_CAN_CANEN;
+	CAN_Synchronisation(0);
+	CAN_Synchronisation(1);
 			canTransfer.acceptance_mask_reg = MaskAdress << PosAdress;
 			canTransfer.identifier = identifier;
 			canTransfer.data_low_reg = 0x00000000;
 			canTransfer.data_high_reg = 0x00000000;
 			canTransfer.control_reg = 0x00000000; // Mailbox Data Length Code
 			//Setup receiving MailBox by MSO address
-			for (i = 0; i < 8; i++) {
+			for (i = 0; i < NB_RX_MB; i++) {
 				canTransfer.can_number = 0;
 				canTransfer.mailbox_number = i;
 				canTransfer.mode_reg = (i < (NB_RX_MB - 1)) ? AT91C_CAN_MOT_RX : AT91C_CAN_MOT_RXOVERWRITE;

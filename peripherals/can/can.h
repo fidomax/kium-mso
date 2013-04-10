@@ -82,6 +82,8 @@
 #elif (NB_RX_MB < 1)
 #error define at least 1 RX MBs!
 #endif
+#define START_TX_MB			NB_RX_MB
+#define TX_INT_MSK			((0xFF << (NB_MB - NB_TX_MB)) & 0xFF)
 
 //------------------------------------------------------------------------------
 //         Types
@@ -120,7 +122,7 @@ extern void CAN_disable(void);
 extern void CAN_ResetAllMailbox(void);
 extern void CAN_InitMailboxRegisters(CanTransfer *pTransfer);
 
-extern unsigned char CAN_Write(CanTransfer *pTransfer);
+extern unsigned char CAN_Write(Message *CanMessage);
 extern unsigned char CAN_Read(CanTransfer *pTransfer);
 
 
