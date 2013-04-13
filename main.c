@@ -450,10 +450,7 @@ void CanHandler(void *p)
 							break;
 							
 					}
-//					Send_Message.control_reg = (AT91C_CAN_MDLC & (0x8 << 16)); // Mailbox Data Length Code
-//					CAN_InitMailboxRegisters(&Send_Message);
 					CAN_Write(&Send_Message);
-//					CAN_ResetTransfer(&Send_Message);
 				}
 					break;
 				case priority_N :
