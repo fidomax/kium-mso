@@ -12,6 +12,7 @@
 #define identifier_Coeff 	((unsigned int) 16)
 #define identifier_ParamTT 	((unsigned int) 17)
 #define identifier_ParamTC	((unsigned int) 18)
+#define identifier_ParamMEZ ((unsigned int) 255)
 //------------------------------------------------------------------------------
 //		   Базовый приоритет
 //------------------------------------------------------------------------------

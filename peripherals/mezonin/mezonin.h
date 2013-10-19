@@ -54,7 +54,6 @@ typedef struct _mezonin
 	AT91PS_PWMC_CH PWM_ptr; // указатель на PWM
 	unsigned int PWM_ID; // идентификатор PWM
 	int PWM_Number; // номер PWM: 0, 1, 2 или 3 (нужен для конфигурации PWM)
-//  AT91PS_PIO            PIO_ctrl_ptr; //указатель на PIO controller (PIOA или PIOB); нужен для конфигурации линии MDATA
 	int Periph_AB; // периферия А или В; нужно для конфигурации линии MDATA (все А, кроме MDATA_4)
 	LinePIO LineMDATA; // линия MDATA
 	LinePIO LineFIN; // линия FIN
@@ -66,7 +65,6 @@ typedef struct _mezonin
 	unsigned int CS; // линия выбора по SPI
 	unsigned int Start;
 	unsigned int TickCount;
-//  unsigned int			ChannelMode[4]; // состояние канала (отключен и т.д.)
 	unsigned int ActiveChannel;
 	xSemaphoreHandle xSemaphore;
 
@@ -219,7 +217,7 @@ typedef struct _TU_Value
 //unsigned char Mez_Recognition_old (unsigned int MezMemoryLine, char address);
 //==========================init functions===========================
 
-unsigned char Mez_Recognition_new(unsigned char MezNum);
+unsigned char Mez_Recognition(unsigned char MezNum);
 
 void Mez_Select(unsigned int MezMemoryLine);
 
