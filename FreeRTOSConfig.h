@@ -1,55 +1,67 @@
 /*
- FreeRTOS V6.0.1 - Copyright (C) 2009 Real Time Engineers Ltd.
+    FreeRTOS V8.0.1 - Copyright (C) 2014 Real Time Engineers Ltd. 
+    All rights reserved
 
- ***************************************************************************
- *                                                                         *
- * If you are:                                                             *
- *                                                                         *
- *    + New to FreeRTOS,                                                   *
- *    + Wanting to learn FreeRTOS or multitasking in general quickly       *
- *    + Looking for basic training,                                        *
- *    + Wanting to improve your FreeRTOS skills and productivity           *
- *                                                                         *
- * then take a look at the FreeRTOS eBook                                  *
- *                                                                         *
- *        "Using the FreeRTOS Real Time Kernel - a Practical Guide"        *
- *                  http://www.FreeRTOS.org/Documentation                  *
- *                                                                         *
- * A pdf reference manual is also available.  Both are usually delivered   *
- * to your inbox within 20 minutes to two hours when purchased between 8am *
- * and 8pm GMT (although please allow up to 24 hours in case of            *
- * exceptional circumstances).  Thank you for your support!                *
- *                                                                         *
- ***************************************************************************
+    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
 
- This file is part of the FreeRTOS distribution.
+    ***************************************************************************
+     *                                                                       *
+     *    FreeRTOS provides completely free yet professionally developed,    *
+     *    robust, strictly quality controlled, supported, and cross          *
+     *    platform software that has become a de facto standard.             *
+     *                                                                       *
+     *    Help yourself get started quickly and support the FreeRTOS         *
+     *    project by purchasing a FreeRTOS tutorial book, reference          *
+     *    manual, or both from: http://www.FreeRTOS.org/Documentation        *
+     *                                                                       *
+     *    Thank you!                                                         *
+     *                                                                       *
+    ***************************************************************************
 
- FreeRTOS is free software; you can redistribute it and/or modify it under
- the terms of the GNU General Public License (version 2) as published by the
- Free Software Foundation AND MODIFIED BY the FreeRTOS exception.
- ***NOTE*** The exception to the GPL is included to allow you to distribute
- a combined work that includes FreeRTOS without being obliged to provide the
- source code for proprietary components outside of the FreeRTOS kernel.
- FreeRTOS is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details. You should have received a copy of the GNU General Public 
- License and the FreeRTOS license exception along with FreeRTOS; if not it 
- can be viewed here: http://www.freertos.org/a00114.html and also obtained 
- by writing to Richard Barry, contact details for whom are available on the
- FreeRTOS WEB site.
+    This file is part of the FreeRTOS distribution.
 
- 1 tab == 4 spaces!
+    FreeRTOS is free software; you can redistribute it and/or modify it under
+    the terms of the GNU General Public License (version 2) as published by the
+    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
- http://www.FreeRTOS.org - Documentation, latest information, license and
- contact details.
+    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+    >>!   distribute a combined work that includes FreeRTOS without being   !<<
+    >>!   obliged to provide the source code for proprietary components     !<<
+    >>!   outside of the FreeRTOS kernel.                                   !<<
 
- http://www.SafeRTOS.com - A version that is certified for use in safety
- critical systems.
+    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
+    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+    FOR A PARTICULAR PURPOSE.  Full license text is available from the following
+    link: http://www.freertos.org/a00114.html
 
- http://www.OpenRTOS.com - Commercial support, development, porting,
- licensing and training services.
- */
+    1 tab == 4 spaces!
+
+    ***************************************************************************
+     *                                                                       *
+     *    Having a problem?  Start by reading the FAQ "My application does   *
+     *    not run, what could be wrong?"                                     *
+     *                                                                       *
+     *    http://www.FreeRTOS.org/FAQHelp.html                               *
+     *                                                                       *
+    ***************************************************************************
+
+    http://www.FreeRTOS.org - Documentation, books, training, latest versions,
+    license and Real Time Engineers Ltd. contact details.
+
+    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
+    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
+    compatible FAT file system, and our tiny thread aware UDP/IP stack.
+
+    http://www.OpenRTOS.com - Real Time Engineers ltd license FreeRTOS to High
+    Integrity Systems to sell under the OpenRTOS brand.  Low cost OpenRTOS
+    licenses offer ticketed support, indemnification and middleware.
+
+    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
+    engineered and independently SIL3 certified version for use in safety and
+    mission critical applications that require provable dependability.
+
+    1 tab == 4 spaces!
+*/
 
 #ifndef FREERTOS_CONFIG_H
 #define FREERTOS_CONFIG_H
@@ -77,9 +89,9 @@
 #define configUSE_IDLE_HOOK         0
 #define configUSE_TICK_HOOK         1
 #define configCPU_CLOCK_HZ          ( ( unsigned long ) 47923200 )
-#define configTICK_RATE_HZ          ( ( portTickType ) 1000 )
-#define configMAX_PRIORITIES		( ( unsigned portBASE_TYPE ) 4 )
-#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 100 )
+#define configTICK_RATE_HZ          ( ( TickType_t ) 1000 )
+#define configMAX_PRIORITIES		( 4 )
+#define configMINIMAL_STACK_SIZE	( ( unsigned short ) 130 )
 #define configTOTAL_HEAP_SIZE		( ( size_t ) ( 24 * 1024 ) )
 #define configMAX_TASK_NAME_LEN		( 10 )
 #define configUSE_TRACE_FACILITY	1
@@ -91,8 +103,9 @@
 #define configUSE_CO_ROUTINES 		0
 #define configMAX_CO_ROUTINE_PRIORITIES ( 2 )
 
+
 /* Set the following definitions to 1 to include the API function, or zero
- to exclude the API function. */
+to exclude the API function. */
 
 #define INCLUDE_vTaskPrioritySet            1
 #define INCLUDE_uxTaskPriorityGet           1

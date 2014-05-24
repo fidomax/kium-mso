@@ -1,66 +1,97 @@
 /*
- FreeRTOS V6.0.1 - Copyright (C) 2013 Real Time Engineers Ltd.
+    FreeRTOS V8.0.1 - Copyright (C) 2014 Real Time Engineers Ltd. 
+    All rights reserved
 
- ***************************************************************************
- *                                                                         *
- * If you are:                                                             *
- *                                                                         *
- *    + New to FreeRTOS,                                                   *
- *    + Wanting to learn FreeRTOS or multitasking in general quickly       *
- *    + Looking for basic training,                                        *
- *    + Wanting to improve your FreeRTOS skills and productivity           *
- *                                                                         *
- * then take a look at the FreeRTOS eBook                                  *
- *                                                                         *
- *        "Using the FreeRTOS Real Time Kernel - a Practical Guide"        *
- *                  http://www.FreeRTOS.org/Documentation                  *
- *                                                                         *
- * A pdf reference manual is also available.  Both are usually delivered   *
- * to your inbox within 20 minutes to two hours when purchased between 8am *
- * and 8pm GMT (although please allow up to 24 hours in case of            *
- * exceptional circumstances).  Thank you for your support!                *
- *                                                                         *
- ***************************************************************************
+    VISIT http://www.FreeRTOS.org TO ENSURE YOU ARE USING THE LATEST VERSION.
 
- This file is part of the FreeRTOS distribution.
+    ***************************************************************************
+     *                                                                       *
+     *    FreeRTOS provides completely free yet professionally developed,    *
+     *    robust, strictly quality controlled, supported, and cross          *
+     *    platform software that has become a de facto standard.             *
+     *                                                                       *
+     *    Help yourself get started quickly and support the FreeRTOS         *
+     *    project by purchasing a FreeRTOS tutorial book, reference          *
+     *    manual, or both from: http://www.FreeRTOS.org/Documentation        *
+     *                                                                       *
+     *    Thank you!                                                         *
+     *                                                                       *
+    ***************************************************************************
 
- FreeRTOS is free software; you can redistribute it and/or modify it under
- the terms of the GNU General Public License (version 2) as published by the
- Free Software Foundation AND MODIFIED BY the FreeRTOS exception.
- ***NOTE*** The exception to the GPL is included to allow you to distribute
- a combined work that includes FreeRTOS without being obliged to provide the
- source code for proprietary components outside of the FreeRTOS kernel.
- FreeRTOS is distributed in the hope that it will be useful, but WITHOUT
- ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
- FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
- more details. You should have received a copy of the GNU General Public
- License and the FreeRTOS license exception along with FreeRTOS; if not it
- can be viewed here: http://www.freertos.org/a00114.html and also obtained
- by writing to Richard Barry, contact details for whom are available on the
- FreeRTOS WEB site.
+    This file is part of the FreeRTOS distribution.
 
- 1 tab == 4 spaces!
+    FreeRTOS is free software; you can redistribute it and/or modify it under
+    the terms of the GNU General Public License (version 2) as published by the
+    Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
 
- http://www.FreeRTOS.org - Documentation, latest information, license and
- contact details.
+    >>!   NOTE: The modification to the GPL is included to allow you to     !<<
+    >>!   distribute a combined work that includes FreeRTOS without being   !<<
+    >>!   obliged to provide the source code for proprietary components     !<<
+    >>!   outside of the FreeRTOS kernel.                                   !<<
 
- http://www.SafeRTOS.com - A version that is certified for use in safety
- critical systems.
+    FreeRTOS is distributed in the hope that it will be useful, but WITHOUT ANY
+    WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+    FOR A PARTICULAR PURPOSE.  Full license text is available from the following
+    link: http://www.freertos.org/a00114.html
 
- http://www.OpenRTOS.com - Commercial support, development, porting,
- licensing and training services.
- */
+    1 tab == 4 spaces!
+
+    ***************************************************************************
+     *                                                                       *
+     *    Having a problem?  Start by reading the FAQ "My application does   *
+     *    not run, what could be wrong?"                                     *
+     *                                                                       *
+     *    http://www.FreeRTOS.org/FAQHelp.html                               *
+     *                                                                       *
+    ***************************************************************************
+
+    http://www.FreeRTOS.org - Documentation, books, training, latest versions,
+    license and Real Time Engineers Ltd. contact details.
+
+    http://www.FreeRTOS.org/plus - A selection of FreeRTOS ecosystem products,
+    including FreeRTOS+Trace - an indispensable productivity tool, a DOS
+    compatible FAT file system, and our tiny thread aware UDP/IP stack.
+
+    http://www.OpenRTOS.com - Real Time Engineers ltd license FreeRTOS to High
+    Integrity Systems to sell under the OpenRTOS brand.  Low cost OpenRTOS
+    licenses offer ticketed support, indemnification and middleware.
+
+    http://www.SafeRTOS.com - High Integrity Systems also provide a safety
+    engineered and independently SIL3 certified version for use in safety and
+    mission critical applications that require provable dependability.
+
+    1 tab == 4 spaces!
+*/
 
 /*
- NOTE : Tasks run in System mode and the scheduler runs in Supervisor mode.
- The processor MUST be in supervisor mode when vTaskStartScheduler is
- called.  The demo applications included in the FreeRTOS.org download switch
- to supervisor mode prior to main being called.  If you are not using one of
- these demo application projects then ensure Supervisor mode is used.
- */
+	NOTE : Tasks run in System mode and the scheduler runs in Supervisor mode.
+	The processor MUST be in supervisor mode when vTaskStartScheduler is
+	called.  The demo applications included in the FreeRTOS.org download switch
+	to supervisor mode prior to main being called.  If you are not using one of
+	these demo application projects then ensure Supervisor mode is used.
+*/
 
 /*
-
+ * This demo includes a (basic) USB mouse driver and a WEB server.  It is
+ * targeted for the AT91SAM7X EK prototyping board which includes a small
+ * joystick to provide the mouse inputs.  The WEB interface provides some basic
+ * interactivity through the use of a check box to turn on and off an LED.
+ *
+ * main() creates the WEB server, USB, and a set of the standard demo tasks
+ * before starting the scheduler.  See the online FreeRTOS.org documentation 
+ * for more information on the standard demo tasks.  
+ *
+ * LEDs D1 to D3 are controlled by the standard 'flash' tasks - each will 
+ * toggle at a different fixed frequency.
+ *
+ * A tick hook function is used to monitor the standard demo tasks - with LED
+ * D4 being used to indicate the system status.  D4 toggling every 5 seconds
+ * indicates that all the standard demo tasks are executing without error.  The
+ * toggle rate increasing to 500ms is indicative of an error having been found
+ * in at least one demo task.
+ *
+ * See the online documentation page that accompanies this demo for full setup
+ * and usage information.
  */
 
 /* Standard includes. */
@@ -97,7 +128,7 @@ extern void CAN1_ISR(void) __attribute__((naked));
 #define mainUSB_PRIORITY					( tskIDLE_PRIORITY + 2 )
 #define mainBLOCK_Q_PRIORITY				( tskIDLE_PRIORITY + 1 )
 #define mainFLASH_PRIORITY                  ( tskIDLE_PRIORITY + 2 )
-#define mainGEN_QUEUE_TASK_PRIORITY			( tskIDLE_PRIORITY )
+#define mainGEN_QUEUE_TASK_PRIORITY			( tskIDLE_PRIORITY ) 
 
 #define mainUIP_TASK_STACK_SIZE_MAX		( configMINIMAL_STACK_SIZE * 10 )
 #define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 5 )
@@ -468,7 +499,7 @@ void CanHandler(void *p)
 void LedBlinkTask(void *p)
 {
 	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
+	const portTickType xFrequency = 1000;
 
 	xLastWakeTime = xTaskGetTickCount();
 	
