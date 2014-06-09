@@ -137,14 +137,14 @@ extern void CAN1_ISR(void) __attribute__((naked));
 //------------------------------------------------------------------------------
 //         For Page Mezonin
 //------------------------------------------------------------------------------
-#define PageParam	((unsigned int) 1)
-#define PageCoeff	((unsigned int) 5)
-#define PageLevel	((unsigned int) 9)
+#define PageParam	((uint32_t) 1)
+#define PageCoeff	((uint32_t) 5)
+#define PageLevel	((uint32_t) 9)
 
 volatile char MSO_Address;
 
-xSemaphoreHandle xTWISemaphore;
-xQueueHandle xCanQueue, xMezQueue, xMezTUQueue;
+SemaphoreHandle_t  xTWISemaphore;
+QueueHandle_t xCanQueue, xMezQueue, xMezTUQueue;
 
 CanTransfer canTransfer0;
 CanTransfer canTransfer1;
@@ -153,19 +153,19 @@ CanTransfer canTransfer_new0;
 
 mezonin mezonin_my[4];
 
-xTaskHandle xMezHandle;
+TaskHandle_t xMezHandle;
 TT_Value Mezonin_TT[4];
 
 TC_Value Mezonin_TC[4];
 
 TU_Value Mezonin_TU[4];
 
-int tt[100];
-int c = 0;
+int32_t tt[100];
+int32_t c = 0;
 
-unsigned int TY_state = 0x00;
-unsigned int Prev_SPI_RDR_value = 0x00;
-unsigned int Cur_SPI_RDR_value = 0x00;
+uint32_t TY_state = 0x00;
+uint32_t Prev_SPI_RDR_value = 0x00;
+uint32_t Cur_SPI_RDR_value = 0x00;
 /*-----------------------------------------------------------*/
 
 static void prvSetupHardware(void);
@@ -199,14 +199,14 @@ void PCA9532_init(void)
 //------------------------------------------//*//------------------------------------------------
 void CanHandler(void *p)
 {
-	portTickType xLastWakeTime;
-//	unsigned int identifier;
-	unsigned int Type, Priority, Channel_Num, Param;
-	int a;
+	TickType_t xLastWakeTime;
+//	uint32_t identifier;
+	uint32_t Type, Priority, Channel_Num, Param;
+	int32_t a;
 	Mez_Value test23;
 	Message Recieve_Message,Send_Message;
 	
-	// Initialise the xLastWakeTime variable with the current time.
+	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 	CAN_Init(1000,AT91C_CAN_MIDE | MSO_Address << PosAdress);
 	
@@ -214,9 +214,9 @@ void CanHandler(void *p)
 //	identifier = AT91C_CAN_MIDE | MSO_Address << PosAdress;
 	for (;;) {
 		// Wait for the next cycle.
-		if (xQueueReceive( xCanQueue, &Recieve_Message, portMAX_DELAY)) { // пришло CAN сообщение
+		if (xQueueReceive( xCanQueue, &Recieve_Message, portMAX_DELAY)) { // We have CAN message
 			vParTestToggleLED(0);
-			// разбор идентификатора
+			// CAN ID parsing
 			Type = Recieve_Message.real_Identifier >> PosType & MaskType;
 			Priority = Recieve_Message.real_Identifier >> PosPriority & MaskPriority;
 			Channel_Num = Recieve_Message.real_Identifier >> PosChannel & MaskChannel;
@@ -257,7 +257,7 @@ void CanHandler(void *p)
 									test23.Channel = Channel_Num % 4;
 									test23.Value = Recieve_Message.data_low_reg;
 									if (xMezTUQueue != 0) {
-										if (xQueueSend( xMezTUQueue, &test23, ( portTickType ) 0 )) {
+										if (xQueueSend( xMezTUQueue, &test23, ( TickType_t ) 0 )) {
 										}
 									}
 									break;
@@ -270,7 +270,7 @@ void CanHandler(void *p)
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.CRC = Crc16((unsigned char *)&(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels), sizeof(TT_Level) - sizeof(unsigned short) - 2);
 									
 									if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageLevel, 0x00, sizeof(TT_Level), (unsigned char *)&Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
 											vTaskDelayUntil(&xLastWakeTime, 10);
 											xSemaphoreGive( xTWISemaphore);
@@ -302,7 +302,7 @@ void CanHandler(void *p)
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.CRC = Crc16((unsigned char *)&(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs), sizeof(TT_Coeff) - sizeof(unsigned short) - 2);
 									
 									if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageCoeff, 0x00, sizeof(TT_Coeff), (unsigned char *)&Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs);
 											vTaskDelayUntil(&xLastWakeTime, 10);
 											xSemaphoreGive( xTWISemaphore);
@@ -331,7 +331,7 @@ void CanHandler(void *p)
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16((unsigned char *)&(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params), sizeof(TT_Param) - sizeof(unsigned short) - 2);
 									
 									if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageParam, 0x00, sizeof(TT_Param), (unsigned char *)&Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params);
 											vTaskDelayUntil(&xLastWakeTime, 10);
 											xSemaphoreGive( xTWISemaphore);
@@ -364,7 +364,7 @@ void CanHandler(void *p)
 								case ParamWrite : // запись в ЕЕПРОМ!!!!!!!
 									Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16((unsigned char *)&(Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Params), 4/*sizeof (TC_Param) - sizeof(unsigned short)*/);
 									if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + 1, 0x00, sizeof(TC_Param), (unsigned char *)&Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Params);
 											vTaskDelayUntil(&xLastWakeTime, 10);
 											xSemaphoreGive( xTWISemaphore);
@@ -408,11 +408,11 @@ void CanHandler(void *p)
 						case identifier_ParamTT :
 							switch (Param) {
 								case ParamMode :
-									*((int *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode;
+									*((int32_t *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode;
 									Send_Message.data_high_reg = 0;
 									break;
 								case ParamTime :
-									*((int *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MeasTime;
+									*((int32_t *)&(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MeasTime;
 									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMinD :
@@ -498,8 +498,8 @@ void CanHandler(void *p)
 //------------------------------------------//*//------------------------------------------------
 void LedBlinkTask(void *p)
 {
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 1000;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = *((uint32_t *)p);//1000;
 
 	xLastWakeTime = xTaskGetTickCount();
 	
@@ -526,11 +526,11 @@ void get_TY_state(void)
 //------------------------------------------//*//------------------------------------------------
 void MyTask4(void *p)
 {
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 1000;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 1000;
 	xLastWakeTime = xTaskGetTickCount();
 //	char rxValue;
-	/*unsigned int SPI0_configuration, CS_configuration;
+	/*uint32_t SPI0_configuration, CS_configuration;
 
 	 AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, LED_0);
 
@@ -581,13 +581,13 @@ void MyTask4(void *p)
 //------------------------------------------//*//------------------------------------------------
 void Mez_TC_Task(void *p)
 {
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-	int Mez_num;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 200;
+	int32_t Mez_num;
 
 	xLastWakeTime = xTaskGetTickCount();
 	
-	Mez_num = (int)p;
+	Mez_num = (int32_t)p;
 	for (;;) {
 		Mez_TC_handler(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -596,13 +596,13 @@ void Mez_TC_Task(void *p)
 //------------------------------------------//*//------------------------------------------------
 void Mez_TU_Task(void *p)
 {
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-	int Mez_num;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 200;
+	int32_t Mez_num;
 
 	xLastWakeTime = xTaskGetTickCount();
 	
-	Mez_num = (int)p;
+	Mez_num = (int32_t)p;
 	for (;;) {
 		Mez_TU_handler(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -611,11 +611,11 @@ void Mez_TU_Task(void *p)
 //------------------------------------------//*//------------------------------------------------
 void Mez_TT_Task(void *p)
 {
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-	int Mez_Num;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 200;
+	int32_t Mez_Num;
 	xLastWakeTime = xTaskGetTickCount();
-	Mez_Num = (int)p;
+	Mez_Num = (int32_t)p;
 	for (;;) {
 		Mez_TT_handler(&mezonin_my[Mez_Num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -624,13 +624,13 @@ void Mez_TT_Task(void *p)
 //------------------------------------------//*//-----------------------------------------------
 void Mez_TP_Task(void *p)
 {
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-	int Mez_num;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 200;
+	int32_t Mez_num;
 
 	xLastWakeTime = xTaskGetTickCount();
 	
-	Mez_num = (int)p;
+	Mez_num = (int32_t)p;
 	for (;;) {
 		Mez_TP_Task(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -640,13 +640,13 @@ void Mez_TP_Task(void *p)
 //------------------------------------------//*//------------------------------------------------
 void Mez_TI_Task(void *p)
 {
-	portTickType xLastWakeTime;
-	const portTickType xFrequency = 200;
-	int Mez_num;
+	TickType_t xLastWakeTime;
+	const TickType_t xFrequency = 200;
+	int32_t Mez_num;
 	
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
-	Mez_num = (int)p;
+	Mez_num = (int32_t)p;
 	for (;;) {
 		Mez_TI_Task(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
@@ -656,14 +656,14 @@ void Mez_TI_Task(void *p)
 //------------------------------------------//*//------------------------------------------------
 void MezValue(void *p)
 {
-	unsigned int Count;
-//	unsigned int identifier;
+	uint32_t Count;
+//	uint32_t identifier;
 	Mez_Value Mez_V;
-	int ChannelNumber;
+	int32_t ChannelNumber;
 	float tempTT, temp1TT;
-	unsigned int ValueTC_temp, StateTC_temp/*,temp1,temp2*/;
+	uint32_t ValueTC_temp, StateTC_temp/*,temp1,temp2*/;
 	Message Send_Message;
-	int n, i;
+	//int32_t n, i;
 	
 	for (;;) {
 		if (xMezQueue != 0) {
@@ -683,7 +683,7 @@ void MezValue(void *p)
 	/*						n = 0;
 							while (!n) {
 								for (i = 12; i < 16; i++) {
-									AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((unsigned int)AT91C_BASE_CAN0_MB0 + (unsigned int)(0x20 * i));
+									AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((uint32_t)AT91C_BASE_CAN0_MB0 + (uint32_t)(0x20 * i));
 									if ((CAN_Mailbox->CAN_MB_MSR & AT91C_CAN_MRDY)|| ((CAN_Mailbox->CAN_MB_MMR & AT91C_CAN_MOT)==0))n=i;
 									break;
 								}
@@ -732,7 +732,7 @@ void MezValue(void *p)
 	/*						n = 0;
 							while (!n) {
 								for (i = 12; i < 16; i++) {
-									AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((unsigned int)AT91C_BASE_CAN0_MB0 + (unsigned int)(0x20 * i));
+									AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((uint32_t)AT91C_BASE_CAN0_MB0 + (uint32_t)(0x20 * i));
 									if ((CAN_Mailbox->CAN_MB_MSR & AT91C_CAN_MRDY)|| ((CAN_Mailbox->CAN_MB_MMR & AT91C_CAN_MOT)==0))n=i;
 									break;
 								}
@@ -772,10 +772,10 @@ void MezRec(void *p) // распознование типа мезонина
 {
 	unsigned char RedLeds = 0;
 	unsigned char GreenLeds = 0;
-	int i;
+	int32_t i;
 	signed char a;
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 			MSO_Address = Switch8_Read(); // Определение адреса МСО
 		}
 		xSemaphoreGive(xTWISemaphore);
@@ -786,7 +786,7 @@ void MezRec(void *p) // распознование типа мезонина
 		Mezonin_TT[i].ID = i;
 		Mezonin_TC[i].ID = i;
 		if (xTWISemaphore != NULL) {
-			if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+			if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 				mezonin_my[i].Mez_Type = Mez_Recognition(i); // Определение типа мезонина
 				xSemaphoreGive(xTWISemaphore);
 			}
@@ -815,9 +815,9 @@ void MezRec(void *p) // распознование типа мезонина
 			case Mez_TC:
 				GreenLeds |= LED_ON(i);
 				if ((xTWISemaphore != NULL)) {
-					if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 						if (Get_TCParams(&Mezonin_TC[i]) == 0) {
-							xTaskCreate( Mez_TC_Task, ( signed portCHAR * )"Mez_TC_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
+							xTaskCreate( Mez_TC_Task, "Mez_TC_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
 						} else {
 							RedLeds |= LED_PWM0(i);
 						}
@@ -829,9 +829,9 @@ void MezRec(void *p) // распознование типа мезонина
 			case Mez_TU:
 				GreenLeds |= LED_ON(i);
 				if ((xTWISemaphore != NULL)) {
-					if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 						if (Get_TUParams(&Mezonin_TU[i]) == 0) {
-							xTaskCreate( Mez_TU_Task, ( signed portCHAR * )"Mez_TU" + a, mainUIP_TASK_STACK_SIZE_MIN, (void *)i, mainUIP_PRIORITY, NULL);
+							xTaskCreate( Mez_TU_Task, "Mez_TU" + a, mainUIP_TASK_STACK_SIZE_MIN, (void *)i, mainUIP_PRIORITY, NULL);
 						} else {
 							RedLeds |= LED_PWM0(i);
 						}
@@ -843,9 +843,9 @@ void MezRec(void *p) // распознование типа мезонина
 			case Mez_TT:
 				GreenLeds |= LED_ON(i);
 				if ((xTWISemaphore != NULL)) {
-					if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 						if (Get_TTParams(&Mezonin_TT[i]) || Get_TTCoeffs(&Mezonin_TT[i]) || Get_TTLevels(&Mezonin_TT[i]) == 0) {
-							xTaskCreate( Mez_TT_Task, ( signed portCHAR * )"MEZ_TT_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
+							xTaskCreate( Mez_TT_Task, "MEZ_TT_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
 						} else {
 							RedLeds |= LED_PWM0(i);
 						}
@@ -857,12 +857,12 @@ void MezRec(void *p) // распознование типа мезонина
 				
 			case Mez_TP:
 				GreenLeds |= LED_ON(i);
-				xTaskCreate( Mez_TP_Task, ( signed portCHAR * )"Mez_TP" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
+				xTaskCreate( Mez_TP_Task, "Mez_TP" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
 				break;
 				
 			case Mez_TI:
 				GreenLeds |= LED_ON(i);
-				xTaskCreate( Mez_TI_Task, ( signed portCHAR * )"MEZ_TI_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
+				xTaskCreate( Mez_TI_Task, "MEZ_TI_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void *)i, mainUIP_PRIORITY, NULL);
 				break;
 				
 			case Mez_NOT:
@@ -875,7 +875,7 @@ void MezRec(void *p) // распознование типа мезонина
 		}
 	}
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( portTickType ) 10 ) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 			TWI_StartWrite(AT91C_BASE_TWI, (unsigned char)PCA9532_address, (PCA9532_LS0 | PCA9532_AUTO_INCR), 1);
 			TWI_WriteByte(AT91C_BASE_TWI, RedLeds);
 			Wait_THR_Ready();
@@ -888,8 +888,36 @@ void MezRec(void *p) // распознование типа мезонина
 		}
 	}
 	
-	xTaskCreate( CanHandler, ( signed portCHAR * )"CanHandler", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
-	vTaskDelete(*((xTaskHandle *)p));
+	xTaskCreate( CanHandler, "CanHandler", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
+	vTaskDelete(*((TaskHandle_t *)p));
+}
+void MezSetDefaultConfig(void * p)
+{
+	uint8_t MezType;
+	uint32_t Freq;
+	Freq = 100;
+	if (xTWISemaphore != NULL) {
+		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+			MezType = Switch8_Read(); // Get Mez type to set
+		}
+		xSemaphoreGive(xTWISemaphore);
+	}
+	Mez_SetType(0,MezType);
+	Mez_SetType(1,MezType);
+	Mez_SetType(2,MezType);
+	Mez_SetType(3,MezType);
+	switch (MezType){
+		case Mez_TC :
+			Set_TCDefaultParams(0);
+			Set_TCDefaultParams(1);
+			Set_TCDefaultParams(2);
+			Set_TCDefaultParams(3);
+			break;
+	}
+	xTaskCreate( LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);
+	//xTaskCreate( MezRec, "Recognition", mainUIP_TASK_STACK_SIZE_MED, &xMezHandle, mainUIP_PRIORITY, &xMezHandle);
+	//xTaskCreate( MezValue, "Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
+	vTaskDelete(*((TaskHandle_t *)p));
 }
 //------------------------------------------//*//------------------------------------------------
 /*
@@ -897,6 +925,7 @@ void MezRec(void *p) // распознование типа мезонина
  */
 int main(void)
 {
+	uint32_t Freq;
 	Mez_PreInit(&mezonin_my[0], &mezonin_my[1], &mezonin_my[2], &mezonin_my[3]);
 	
 	prvSetupHardware();
@@ -904,10 +933,23 @@ int main(void)
 	xCanQueue = xQueueCreate( 64, sizeof( Message ));
 	xMezQueue = xQueueCreate(16, sizeof(Mez_Value));
 	xMezTUQueue = xQueueCreate(16, sizeof(Mez_Value));
+	switch (Switch2_Read()) {
+		case MSO_MODE_WORK :
+			Freq = 1000;
+			xTaskCreate( LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);
+			xTaskCreate( MezRec, "Recognition", mainUIP_TASK_STACK_SIZE_MED, &xMezHandle, mainUIP_PRIORITY, &xMezHandle);
+			xTaskCreate( MezValue, "Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
+			break;
+		case MSO_MODE_MEZ_INIT:
+			Freq = 100;
+			//xTaskCreate( LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);
+			xTaskCreate( MezSetDefaultConfig, "DefaultConfig", mainUIP_TASK_STACK_SIZE_MED*4, &xMezHandle, mainUIP_PRIORITY, &xMezHandle);
+			//MEZ_memory_Read(MezNum, 0x00, 0x00, 1, &Mez_Type);
+			break;
 
-	xTaskCreate( LedBlinkTask, ( signed portCHAR * )"LedBlink", mainUIP_TASK_STACK_SIZE_MIN, 0, mainUIP_PRIORITY, NULL);
-	xTaskCreate( MezRec, ( signed portCHAR * )"Recognition", mainUIP_TASK_STACK_SIZE_MED, &xMezHandle, mainUIP_PRIORITY, &xMezHandle);
-	xTaskCreate( MezValue, ( signed portCHAR * )"Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
+
+	}
+
 
 
 	/* Start the scheduler.
@@ -927,7 +969,7 @@ int main(void)
 
 static void prvSetupHardware(void)
 {
-	unsigned int i;
+	uint32_t i;
 	portDISABLE_INTERRUPTS();
 	
 	/* When using the JTAG debugger the hardware is not always initialised to
@@ -976,8 +1018,8 @@ static void prvSetupHardware(void)
 void vApplicationTickHook(void)
 {
 	static portBASE_TYPE xTaskWoken = pdFALSE;
-	int i;
-	unsigned int PWM = 0;
+	int32_t i;
+	uint32_t PWM = 0;
 	for (i = 0; i < 4; i++) {
 		if (mezonin_my[i].Start) {
 			mezonin_my[i].Start = 0;

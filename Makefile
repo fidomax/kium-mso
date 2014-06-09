@@ -75,7 +75,7 @@ LDSCRIPT=atmel-rom.ld
 LINKER_FLAGS=-mthumb -nostartfiles -Xlinker -o$(ELF_OUTPUT) -Xlinker -M -Xlinker -Map=rtosdemo.map
 
 DEBUG=-g
-OPTIM=-O3
+OPTIM=-O0
 
 
 VPATH +=$(RTOS_SOURCE_DIR) $(DEMO_COMMON_DIR) SrcAtmel ParTest ARM7_AT91SAM7A3 $(RTOS_SOURCE_DIR)/portable/MemMang boards peripherals/twi peripherals/spi peripherals/aic peripherals/pio peripherals/can peripherals/tc peripherals/pwmc peripherals/mezonin peripherals/pit utility peripherals/MSO_functions 
@@ -97,6 +97,7 @@ CFLAGS= $(DEBUG) \
 		-mthumb-interwork \
 		-fno-strict-aliasing \
 		-Wall \
+		-std=gnu11\
 		-fno-dwarf2-cfi-asm
 		
 										

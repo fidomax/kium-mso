@@ -99,7 +99,7 @@ Message Actual_Message;
 //static CanTransfer *pCAN1Transfer = NULL;
 #endif
 //Message Actual_Message;
-extern xQueueHandle xCanQueue;
+extern QueueHandle_t xCanQueue;
 //------------------------------------------------------------------------------
 
 //         Local functions

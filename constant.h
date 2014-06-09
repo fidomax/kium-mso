@@ -1,3 +1,5 @@
+#define MSO_MODE_WORK 0b00
+#define MSO_MODE_MEZ_INIT 0b11
 ///------------------------------------------------------------------------------
 //         For CAN identifier
 #define CAN_MIDE        (0x1 << 29) // (CAN_MB) Identifier Version
