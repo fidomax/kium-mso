@@ -146,7 +146,7 @@ typedef struct _TC_Channel
 typedef struct _TC_Value
 {
 	TC_Channel Channel[4]; // номер канала
-	uint8_t PerTime;
+//	uint8_t PerTime;
 	int32_t ID; // номер мезонина
 } TC_Value;
 
@@ -235,6 +235,9 @@ uint32_t Get_TTLevels(TT_Value *TT_temp);
 uint32_t Get_TUParams(TU_Value *TU_temp);
 
 void Set_TCDefaultParams(uint8_t MezNum);
+
+void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs);
+void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels);
 
 //========================handler functions===============================
 void Mez_handler_select(int32_t Mezonin_Type, mezonin *MezStruct);

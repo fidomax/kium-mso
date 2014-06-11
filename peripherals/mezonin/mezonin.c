@@ -17,6 +17,14 @@ uint32_t VVV[4][4];
 #define TC_BRK		0
 #define Channel_OFF	4
 
+//------------------------------------------------------------------------------
+//         For Page Mezonin
+//------------------------------------------------------------------------------
+#define PageType	((uint32_t) 0)
+#define PageParam	((uint32_t) 1)
+#define PageCoeff	((uint32_t) 5)
+#define PageLevel	((uint32_t) 9)
+
 uint32_t overflow[4];		// массив значений перполнений счетчика TT
 
 extern TT_Value Mezonin_TT[4];
@@ -514,8 +522,7 @@ void Mez_TC_handler(mezonin *MezStruct)
 			BRK = TC_OK;
 		}
 
-		if (((MezStruct->LineMDATA.PIO_ctrl_ptr->PIO_PDSR /*AT91C_BASE_PIOB->PIO_PDSR*/) & MezStruct->LineMDATA.PIO_Line)
-				== MezStruct->LineMDATA.PIO_Line)		//На линии MDATA торчит ноль значит ВКЛ
+		if (((MezStruct->LineMDATA.PIO_ctrl_ptr->PIO_PDSR /*AT91C_BASE_PIOB->PIO_PDSR*/) & MezStruct->LineMDATA.PIO_Line) == MezStruct->LineMDATA.PIO_Line)	//На линии MDATA торчит ноль значит ВКЛ
 				{
 			MDATA = TC_ON;
 //       		 TC_State[MezStruct->Mez_ID] = TC_ON;
@@ -704,14 +711,12 @@ void Mez_TT_Calib(mezonin *MezStruct, uint32_t Channel_Num, uint32_t flag/*, TT_
 			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.p_max = Max100
 					- Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.k_max * MeasTime2;
 
-			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Min_Value =
-					Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.k_min
-							* Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Params.MeasTime
-							+ Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.p_min;
-			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Max_Value =
-					Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.k_max
-							* Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Params.MeasTime
-							+ Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.p_max;
+			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Min_Value = Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.k_min
+					* Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Params.MeasTime
+					+ Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.p_min;
+			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Max_Value = Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.k_max
+					* Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Params.MeasTime
+					+ Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.p_max;
 
 			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs.CRC = Crc16(
 					(uint8_t *) &(Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs), sizeof(TT_Coeff) - sizeof(uint16_t) - 2);
@@ -782,7 +787,7 @@ void Mez_TU_handler(mezonin *MezStruct)
 			if (xQueueReceive(xMezTUQueue, &Real_TU, portMAX_DELAY)) {
 				Mezonin_TU[Real_TU.ID].Channel[Real_TU.Channel].Value = Real_TU.Value;
 				MDATA[Real_TU.ID] = Mezonin_TU[Real_TU.ID].Channel[0].Value << 4 | Mezonin_TU[Real_TU.ID].Channel[1].Value << 5
-						| Mezonin_TU[Real_TU.ID].Channel[2].Value << 6 | Mezonin_TU[Real_TU.ID].Channel[3].Value << 7;// пишем сразу в 4 канала
+						| Mezonin_TU[Real_TU.ID].Channel[2].Value << 6 | Mezonin_TU[Real_TU.ID].Channel[3].Value << 7;		// пишем сразу в 4 канала
 
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
@@ -843,10 +848,8 @@ uint32_t Get_TTCoeffs(TT_Value *TT_temp)
 		temp_CRC = Crc16(DataRecieve, sizeof(TT_Coeff) - sizeof(uint16_t) - 2);
 		if (temp_CRC == ((TT_Coeff *) DataRecieve)->CRC) {
 			TT_temp->Channel[i].Coeffs = *(TT_Coeff *) DataRecieve;
-			TT_temp->Channel[i].Min_Value = TT_temp->Channel[i].Coeffs.k_min * TT_temp->Channel[i].Params.MeasTime
-					+ TT_temp->Channel[i].Coeffs.p_min;
-			TT_temp->Channel[i].Max_Value = TT_temp->Channel[i].Coeffs.k_max * TT_temp->Channel[i].Params.MeasTime
-					+ TT_temp->Channel[i].Coeffs.p_max;
+			TT_temp->Channel[i].Min_Value = TT_temp->Channel[i].Coeffs.k_min * TT_temp->Channel[i].Params.MeasTime + TT_temp->Channel[i].Coeffs.p_min;
+			TT_temp->Channel[i].Max_Value = TT_temp->Channel[i].Coeffs.k_max * TT_temp->Channel[i].Params.MeasTime + TT_temp->Channel[i].Coeffs.p_max;
 		} else {
 			return 1;
 		}
@@ -885,7 +888,7 @@ uint32_t Get_TCParams(TC_Value *TC_ParamData)
 	for (i = 0; i < 4; i++) {
 		TC_ParamData->Channel[i].Params.Mode = 4;
 		a = MEZ_memory_Read(TC_ParamData->ID, i + 1, 0x00, sizeof(TC_Param), DataRecieve); // чтение начальных параметров из EEPROM
-		temp_CRC = Crc16(DataRecieve, 4/*sizeof(TC_Param) - sizeof(uint16_t) - 2*/);//TODO fix TCParams size
+		temp_CRC = Crc16(DataRecieve, offsetof(TC_Param, CRC)); //TODO fix TCParams size possibly works
 		if (temp_CRC == ((TC_Param *) DataRecieve)->CRC) {
 			TC_ParamData->Channel[i].Params = *(TC_Param *) DataRecieve;
 		} else {
@@ -937,17 +940,99 @@ void Set_TCDefaultParams(uint8_t MezNum)
 	uint8_t i;
 	for (i = 0; i < 4; i++) {
 		Params = &Mezonin_TC[MezNum].Channel[i].Params;
-
 		Params->Mode = 8;
-		Params->CRC = Crc16((unsigned char *) Params, 4); //TODO fix TCParams size
+		Params->CRC = Crc16((uint8_t *) Params, offsetof(TC_Param, CRC)); //TODO fix TCParams size possibly works
 		if (xTWISemaphore != NULL) {
 			if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
-				MEZ_memory_Write(MezNum, i + 1, 0x00, sizeof(TC_Param), (unsigned char *) Params);
+				MEZ_memory_Write(MezNum, i + 1, 0x00, sizeof(TC_Param), (uint8_t *) Params);
 				vTaskDelay(100);
 				xSemaphoreGive(xTWISemaphore);
 
 			}
 		}
 
+	}
+}
+//------------------------------------------------------------------------------
+
+void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs)
+{
+	if (xTWISemaphore != NULL) {
+		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10) == pdTRUE) {
+			int a;
+			a = MEZ_memory_Write(MezNum, ChannelNumber + PageCoeff, 0x00, sizeof(TT_Coeff), (uint8_t *) Coeffs);
+			vTaskDelay(100);
+			/*				if (a == -6) {
+			 a = MEZ_memory_Write(0, Channel_Num + PageCoeff, 0x00, sizeof(TT_Coeff),
+			 (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Coeffs);
+			 vTaskDelayUntil(&xLastWakeTime, 10);
+			 }*/
+			xSemaphoreGive(xTWISemaphore);
+		}
+	}
+}
+
+void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels)
+{
+	if (xTWISemaphore != NULL) {
+		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10) == pdTRUE) {
+			int a;
+			a = MEZ_memory_Write(MezNum, ChannelNumber + PageLevel, 0x00, sizeof(TT_Level), (uint8_t *) Levels);
+			vTaskDelay(100);
+			xSemaphoreGive(xTWISemaphore);
+		}
+	}
+}
+
+void WriteTTParams(uint8_t MezNum, int ChannelNumber, TT_Param* Params)
+{
+	if (xTWISemaphore != NULL) {
+		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10) == pdTRUE) {
+			int a;
+			a = MEZ_memory_Write(MezNum, ChannelNumber + PageParam, 0x00, sizeof(TT_Param), (uint8_t *) Params);
+			vTaskDelay(100);
+			xSemaphoreGive(xTWISemaphore);
+		}
+	}
+}
+
+
+void Set_TTDefaultParams(uint8_t MezNum)
+{
+	unsigned char * DataToWrite;
+	int i;
+	TT_Coeff * Coeffs;
+	TT_Level * Levels;
+	TT_Param * Params;
+	for (i = 0; i < 4; i++) {
+		Coeffs = &Mezonin_TT[MezNum].Channel[i].Coeffs;
+		Levels = &Mezonin_TT[MezNum].Channel[i].Levels;
+		Params = &Mezonin_TT[MezNum].Channel[i].Params;
+
+		Coeffs->k_max = 1500;
+		Coeffs->k_min = 233;
+		Coeffs->p_max = -1500;
+		Coeffs->p_min = -233;
+
+		Coeffs->CRC = Crc16((uint8_t *) &(Coeffs), offsetof(TT_Coeff, CRC)); //TODO fix TT_Coeff size  possibly works
+
+		Levels->Min_P_Level = 20;
+		Levels->Max_P_Level = 40;
+		Levels->Min_A_Level = 15;
+		Levels->Max_A_Level = 45;
+		Levels->Sense = 0.2;
+
+		Levels->CRC = Crc16((uint8_t *) &(Levels), offsetof(TT_Level, CRC)); //TODO fix TT_Level size  possibly works
+
+	    Params->MeasTime = 20;
+	    Params->Mode = 0;
+	    Params->MinD = 0;
+	    Params->MaxD = 20;
+	    Params->MinF = 0;
+	    Params->MaxF = 100;
+
+		WriteTTCoeffs(MezNum, i, Coeffs);
+		WriteTTLevels(MezNum, i, Levels);
+		WriteTTParams(MezNum, i, Params);
 	}
 }
