@@ -3,6 +3,9 @@
 ///------------------------------------------------------------------------------
 //         For CAN identifier
 #define CAN_MIDE        (0x1 << 29) // (CAN_MB) Identifier Version
+
+#define MAKE_CAN_ID(proirity, type, MSO, channel, param) (AT91C_CAN_MIDE | proirity << 26| type << 18 | MSO << 10 | channel << 4 | param)
+
 //------------------------------------------------------------------------------
 //		   Приоритет по виду запрашиваемых данных
 //------------------------------------------------------------------------------
@@ -64,3 +67,18 @@
 #define MaskChannel			((unsigned int) 0x3F)		// Маска для номера канала
 #define MaskParam			((unsigned int) 0b1111)		// Маска для параметра
 //------------------------------------------------------------------------------
+//		  Состояния
+//------------------------------------------------------------------------------
+#define STATE_OK 		0x00
+#define STATE_BREAK 	0x01
+#define STATE_OVERLOAD 	0x02
+#define STATE_MID		0x03
+#define STATE_OFF		0x04
+#define STATE_OVERFLOW	0x05
+#define STATE_ON		0x08
+#define STATE_MASK		0x09
+#define STATE_FAULT		0x0A
+#define STATE_ERROR		0x0B
+#define STATE_UNDEF		0x0F
+#define STATE_WARNING	0x10
+#define STATE_ALARM		0x11

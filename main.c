@@ -117,6 +117,7 @@
 #include "peripherals/spi/spi.h"
 #include "peripherals/pio/pio_config.h"
 #include "peripherals/aic/aic.h"
+#include <math.h>
 
 extern void TWI_ISR(void) __attribute__((naked));
 extern void CAN0_ISR(void) __attribute__((naked));
@@ -262,22 +263,22 @@ void CanHandler(void *p)
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.CRC = Crc16(
 											(unsigned char *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels),
 											sizeof(TT_Level) - sizeof(unsigned short) - 2);
-									WriteTTLevels(Channel_Num / 4, Channel_Num % 4, & Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
+									WriteTTLevels(Channel_Num / 4, Channel_Num % 4, &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
 									/*if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
-											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageLevel, 0x00, sizeof(TT_Level),
-													(unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
-											vTaskDelayUntil(&xLastWakeTime, 10);
-											xSemaphoreGive(xTWISemaphore);
-										}
-									}*/
+									 if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+									 a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageLevel, 0x00, sizeof(TT_Level),
+									 (unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
+									 vTaskDelayUntil(&xLastWakeTime, 10);
+									 xSemaphoreGive(xTWISemaphore);
+									 }
+									 }*/
 								}
 									break;
 								case ParamMinPred:
-									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_P_Level = *((float *) &(Recieve_Message.data_low_reg));
+									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_W_Level = *((float *) &(Recieve_Message.data_low_reg));
 									break;
 								case ParamMaxPred:
-									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_P_Level = *((float *) &(Recieve_Message.data_low_reg));
+									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_W_Level = *((float *) &(Recieve_Message.data_low_reg));
 									break;
 								case ParamMinAvar:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_A_Level = *((float *) &(Recieve_Message.data_low_reg));
@@ -297,15 +298,15 @@ void CanHandler(void *p)
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.CRC = Crc16(
 											(unsigned char *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs),
 											sizeof(TT_Coeff) - sizeof(unsigned short) - 2);
-									WriteTTCoeffs(Channel_Num / 4, Channel_Num % 4, & Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs);
+									WriteTTCoeffs(Channel_Num / 4, Channel_Num % 4, &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs);
 									/*if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
-											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageCoeff, 0x00, sizeof(TT_Coeff),
-													(unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs);
-											vTaskDelayUntil(&xLastWakeTime, 10);
-											xSemaphoreGive(xTWISemaphore);
-										}
-									}*/
+									 if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+									 a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageCoeff, 0x00, sizeof(TT_Coeff),
+									 (unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs);
+									 vTaskDelayUntil(&xLastWakeTime, 10);
+									 xSemaphoreGive(xTWISemaphore);
+									 }
+									 }*/
 								}
 									break;
 								case ParamKmin:
@@ -331,13 +332,13 @@ void CanHandler(void *p)
 											sizeof(TT_Param) - sizeof(unsigned short) - 2);
 
 									/*if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
-											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageParam, 0x00, sizeof(TT_Param),
-													(unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params);
-											vTaskDelayUntil(&xLastWakeTime, 10);
-											xSemaphoreGive(xTWISemaphore);
-										}
-									}*/
+									 if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+									 a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageParam, 0x00, sizeof(TT_Param),
+									 (unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params);
+									 vTaskDelayUntil(&xLastWakeTime, 10);
+									 xSemaphoreGive(xTWISemaphore);
+									 }
+									 }*/
 								}
 									break;
 								case ParamMode:
@@ -442,11 +443,11 @@ void CanHandler(void *p)
 						case identifier_Level:
 							switch (Param) {
 								case ParamMinPred:
-									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_P_Level;
+									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_W_Level;
 									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMaxPred:
-									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_P_Level;
+									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_W_Level;
 									Send_Message.data_high_reg = 0;
 									break;
 								case ParamMinAvar:
@@ -658,31 +659,49 @@ void Mez_TI_Task(void *p)
 		// Perform action here.
 	}
 }
+void SendCanMessage(uint32_t id, uint32_t data_l, uint32_t data_h)
+{
+	Message Send_Message;
+	Send_Message.real_Identifier = id;
+
+	Send_Message.data_low_reg = data_l;
+	Send_Message.data_high_reg = data_h;
+	Send_Message.canID = 0;
+
+	CAN_Write(&Send_Message);
+//	Send_Message.canID = 1;
+//	CAN_Write(&Send_Message);
+}
 //------------------------------------------//*//------------------------------------------------
 void MezValue(void *p)
 {
 	uint32_t Count;
 //	uint32_t identifier;
 	Mez_Value Mez_V;
-	int32_t ChannelNumber;
-	float tempTT, temp1TT;
+	uint32_t ChannelNumber;
+
 	uint32_t ValueTC_temp, StateTC_temp/*,temp1,temp2*/;
-	Message Send_Message;
+	//Message Send_Message;
 	//int32_t n, i;
+	uint32_t ID;
 
 	for (;;) {
 		if (xMezQueue != 0) {
 			if (xQueueReceive(xMezQueue, &Mez_V, portMAX_DELAY)) {
+
 				switch (mezonin_my[Mez_V.ID].Mez_Type) {
 					case Mez_TC:
-						ValueTC_temp = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
-						StateTC_temp = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State;
-						if ((ValueTC_temp != (Mez_V.Value & 1)) || (StateTC_temp != (Mez_V.Value >> 1))) // если ТС изменился
-								{
-							Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value = Mez_V.Value & 1;
-							Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State = Mez_V.Value >> 1; // доработать со сдвигами
+						ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
+						ID = MAKE_CAN_ID(priority_N, identifier_TC, MSO_Address, ChannelNumber, ParamTC);
+						TC_Channel * tc_channel = &Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel];
+						ValueTC_temp = tc_channel->Value;
+						StateTC_temp = tc_channel->State;
+						if ((ValueTC_temp != (Mez_V.Value & 1)) || (StateTC_temp != (Mez_V.Value >> 1))) { // если ТС изменился
 
-							ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
+							tc_channel->Value = Mez_V.Value & 1;
+							tc_channel->State = Mez_V.Value >> 1; // доработать со сдвигами
+							SendCanMessage(ID, tc_channel->Value, tc_channel->State);
+							/*ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
 							Send_Message.real_Identifier = AT91C_CAN_MIDE
 									| priority_N << 26| identifier_TC << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamFV; // составление идентификатора для посылки
 
@@ -695,13 +714,13 @@ void MezValue(void *p)
 									 }
 									 }*/
 
-							Send_Message.data_low_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
+							/*Send_Message.data_low_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
 							Send_Message.data_high_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State;
 							Send_Message.canID = 0;
 
 							CAN_Write(&Send_Message);
 							Send_Message.canID = 1;
-							CAN_Write(&Send_Message);
+							CAN_Write(&Send_Message);*/
 						}
 
 						break;
@@ -710,52 +729,62 @@ void MezValue(void *p)
 						break;
 
 					case Mez_TT:
+						ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
+						ID = MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, ChannelNumber, ParamFV);
 						Count = Mez_V.Value;	// сколько намотал счетчик
-						Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value = Mez_TT_Frequency(Count, Mez_V.Channel, Mez_V.ID);
+						TT_Channel * tt_channel = &Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel];
+						tt_channel->Value = Mez_TT_Frequency(Count, Mez_V.Channel, Mez_V.ID);
 
 						// анализировать состояние
-						if (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Max_P_Level
-								|| Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value < Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Min_P_Level) {
-							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0x10; // предупредительный порог
-							if (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Max_A_Level
-									|| Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value < Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Min_A_Level)
-								Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0x11; // аварийный порог
-						} else
-							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0; // норма
+						if ((tt_channel->Value > tt_channel->Levels.Max_W_Level) || (tt_channel->Value < tt_channel->Levels.Min_W_Level)) {
+							if ((tt_channel->Value > tt_channel->Levels.Max_A_Level) || (tt_channel->Value < tt_channel->Levels.Min_A_Level)) {
+								if (tt_channel->State != STATE_ALARM) {
+									tt_channel->State = STATE_ALARM; // аварийный порог
+									tt_channel->OldValue = tt_channel->Value;
+									SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+								}
+							}else {
+								if (tt_channel->State != STATE_WARNING) {
+									tt_channel->State = STATE_WARNING; // предупредительный порог
+									tt_channel->OldValue = tt_channel->Value;
+									SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+								}
+							}
+						} else {
+							if (tt_channel->State != STATE_OK) {
+								tt_channel->State = STATE_OK;
+								tt_channel->OldValue = tt_channel->Value;
+								SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+							}
+						}
+						if (tt_channel->Params.Mode == 0x04) {
+							if (tt_channel->State != STATE_MASK) {
+								tt_channel->State = STATE_MASK; // выключен
+								SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+							}
+						}
 
-						if (Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Params.Mode == 0x04)
-							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State = 0x04; // выключен
+						//tempTT = channel.Value - channel.OldValue;
+						//temp1TT = channel.OldValue - channel.Value;
 
-						tempTT = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value - Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue;
-						temp1TT = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue - Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
+						if (fabs(tt_channel->Value - tt_channel->OldValue) > tt_channel->Levels.Sense)
+						/*|| temp1TT > channel.Levels.Sense
+						 || channel.State == 0x0A || channel.State == 0x10
+						 || channel.State == 0x11)*/
 
-						if (tempTT > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Sense
-								|| temp1TT > Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Levels.Sense
-								|| Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State == 0x0A || Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State == 0x10
-								|| Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State == 0x11)
+						{
+							tt_channel->OldValue = tt_channel->Value;
+							SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+							/*Send_Message.real_Identifier = MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, ChannelNumber, ParamFV);	// составление идентификатора для посылки
+							 //									| priority_N << 26| identifier_TT << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamTC; // составление идентификатора для посылки
 
-								{
-							Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].OldValue = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
-							ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-							Send_Message.real_Identifier = AT91C_CAN_MIDE
-									| priority_N << 26| identifier_TT << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamTC; // составление идентификатора для посылки
+							 *((float *) &(Send_Message.data_low_reg)) = channel->Value;
+							 Send_Message.data_high_reg = channel->State;
+							 Send_Message.canID = 0;
 
-									/*						n = 0;
-									 while (!n) {
-									 for (i = 12; i < 16; i++) {
-									 AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((uint32_t)AT91C_BASE_CAN0_MB0 + (uint32_t)(0x20 * i));
-									 if ((CAN_Mailbox->CAN_MB_MSR & AT91C_CAN_MRDY)|| ((CAN_Mailbox->CAN_MB_MMR & AT91C_CAN_MOT)==0))n=i;
-									 break;
-									 }
-									 }*/
-
-							*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].Value;
-							Send_Message.data_high_reg = Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel].State;
-							Send_Message.canID = 0;
-
-							CAN_Write(&Send_Message);
-							Send_Message.canID = 1;
-							CAN_Write(&Send_Message);
+							 CAN_Write(&Send_Message);
+							 Send_Message.canID = 1;
+							 CAN_Write(&Send_Message);*/
 
 						}
 
@@ -825,7 +854,7 @@ void MezRec(void *p) // распознование типа мезонина
 		switch (mezonin_my[i].Mez_Type) {
 			case Mez_TC:
 				GreenLeds |= LED_ON(i);
-				if ((xTWISemaphore != NULL)) {
+				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 						if (Get_TCParams(&Mezonin_TC[i]) == 0) {
 							xTaskCreate(Mez_TC_Task, "Mez_TC_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
@@ -839,7 +868,7 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TU:
 				GreenLeds |= LED_ON(i);
-				if ((xTWISemaphore != NULL)) {
+				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 						if (Get_TUParams(&Mezonin_TU[i]) == 0) {
 							xTaskCreate(Mez_TU_Task, "Mez_TU" + a, mainUIP_TASK_STACK_SIZE_MIN, (void * )i, mainUIP_PRIORITY, NULL);
@@ -853,9 +882,9 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TT:
 				GreenLeds |= LED_ON(i);
-				if ((xTWISemaphore != NULL)) {
+				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
-						if (Get_TTParams(&Mezonin_TT[i]) || Get_TTCoeffs(&Mezonin_TT[i]) || Get_TTLevels(&Mezonin_TT[i]) == 0) {
+						if ((Get_TTParams(&Mezonin_TT[i]) || Get_TTCoeffs(&Mezonin_TT[i]) || Get_TTLevels(&Mezonin_TT[i])) == 0) {
 							xTaskCreate(Mez_TT_Task, "MEZ_TT_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
 							RedLeds |= LED_PWM0(i);

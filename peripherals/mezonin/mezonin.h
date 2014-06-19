@@ -80,8 +80,8 @@ typedef struct _TT_Coeff
 //==========================пороги канала, хранящиеся в EEPROM для ТТ=======================
 typedef struct _TT_Level
 {
-	float Min_P_Level;	// минимальный предупредительный порог
-	float Max_P_Level;	// максимальный предупредительный порог
+	float Min_W_Level;	// минимальный предупредительный порог
+	float Max_W_Level;	// максимальный предупредительный порог
 	float Min_A_Level;	// минимальный аварийный порог
 	float Max_A_Level;	// максимальный аварийный порог
 	float Sense;			// чувствительность
@@ -235,6 +235,7 @@ uint32_t Get_TTLevels(TT_Value *TT_temp);
 uint32_t Get_TUParams(TU_Value *TU_temp);
 
 void Set_TCDefaultParams(uint8_t MezNum);
+void Set_TTDefaultParams(uint8_t MezNum);
 
 void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs);
 void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels);

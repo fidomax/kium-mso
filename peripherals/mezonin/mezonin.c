@@ -17,6 +17,7 @@ uint32_t VVV[4][4];
 #define TC_BRK		0
 #define Channel_OFF	4
 
+
 //------------------------------------------------------------------------------
 //         For Page Mezonin
 //------------------------------------------------------------------------------
@@ -420,17 +421,17 @@ float Mez_TT_Frequency(uint32_t measured_value, uint32_t ChannelNumber, uint32_t
 
 	corrected_value = ((measured_value - MIN_measured_value) / (MAX_measured_value - MIN_measured_value)) * MAX_value;
 
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+//	if (xTWISemaphore != NULL) {
+//		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
 			step = (Mezonin_TT[MEZ_ID].Channel[ChannelNumber].Params.MaxF - Mezonin_TT[MEZ_ID].Channel[ChannelNumber].Params.MinF)
 					/ (Mezonin_TT[MEZ_ID].Channel[ChannelNumber].Params.MaxD - Mezonin_TT[MEZ_ID].Channel[ChannelNumber].Params.MinD);
 			real_value = Mezonin_TT[MEZ_ID].Channel[ChannelNumber].Params.MinF
 					+ (corrected_value - Mezonin_TT[MEZ_ID].Channel[ChannelNumber].Params.MinD) * step;
 
 			//  						vTaskDelay(100);
-			xSemaphoreGive(xTWISemaphore);
-		}
-	}
+//			xSemaphoreGive(xTWISemaphore);
+//		}
+//	}
 
 	return real_value;
 // return corrected_value;
@@ -813,15 +814,15 @@ uint32_t Get_TTLevels(TT_Value *TT_temp)
 
 	for (i = 0; i < 4; i++) {
 
-		TT_temp->Channel[i].Levels.Min_P_Level = 0;
-		TT_temp->Channel[i].Levels.Max_P_Level = 0;
+		TT_temp->Channel[i].Levels.Min_W_Level = 0;
+		TT_temp->Channel[i].Levels.Max_W_Level = 0;
 		TT_temp->Channel[i].Levels.Min_A_Level = 0;
 		TT_temp->Channel[i].Levels.Max_A_Level = 0;
 		TT_temp->Channel[i].Levels.Sense = 0;
 
 		a = MEZ_memory_Read(TT_temp->ID, i + 9, 0x00, sizeof(TT_Level), DataRecieve); // чтение начальных параметров из EEPROM
 
-		temp_CRC = Crc16(DataRecieve, sizeof(TT_Level) - sizeof(uint16_t) - 2);
+		temp_CRC = Crc16(DataRecieve, offsetof(TT_Level, CRC)); //TODO fix TT_Level size possibly works
 		if (temp_CRC == ((TT_Level *) DataRecieve)->CRC) {
 			TT_temp->Channel[i].Levels = *(TT_Level *) DataRecieve;
 		} else {
@@ -845,7 +846,7 @@ uint32_t Get_TTCoeffs(TT_Value *TT_temp)
 		TT_temp->Channel[i].Coeffs.p_max = 0;
 		TT_temp->Channel[i].Coeffs.p_min = 0;
 		a = MEZ_memory_Read(TT_temp->ID, i + 5, 0x00, sizeof(TT_Coeff), DataRecieve); // чтение начальных параметров из EEPROM
-		temp_CRC = Crc16(DataRecieve, sizeof(TT_Coeff) - sizeof(uint16_t) - 2);
+		temp_CRC = Crc16(DataRecieve, offsetof(TT_Coeff, CRC)); //TODO fix TT_Coeff size possibly works
 		if (temp_CRC == ((TT_Coeff *) DataRecieve)->CRC) {
 			TT_temp->Channel[i].Coeffs = *(TT_Coeff *) DataRecieve;
 			TT_temp->Channel[i].Min_Value = TT_temp->Channel[i].Coeffs.k_min * TT_temp->Channel[i].Params.MeasTime + TT_temp->Channel[i].Coeffs.p_min;
@@ -862,13 +863,13 @@ uint32_t Get_TTCoeffs(TT_Value *TT_temp)
 uint32_t Get_TTParams(TT_Value *TT_temp)
 {
 	uint32_t i, a;
-	uint8_t DataRecieve[44];	// ИСПРАВИТЬ!!!!!!!
+	uint8_t DataRecieve[sizeof(TT_Param)];	// ИСПРАВИТЬ!!!!!!!
 	uint16_t temp_CRC;
 	for (i = 0; i < 4; i++) {
 		TT_temp->Channel[i].Levels.Sense = 1.0;
 		a = MEZ_memory_Read(TT_temp->ID, i + 1, 0x00, sizeof(TT_Param), DataRecieve); // чтение начальных параметров из EEPROM
 
-		temp_CRC = Crc16(DataRecieve, sizeof(TT_Param) - sizeof(uint16_t) - 2);
+		temp_CRC = Crc16(DataRecieve, offsetof(TT_Param, CRC)); //TODO fix TT_Param size possibly works
 		if (temp_CRC == ((TT_Param *) DataRecieve)->CRC) {
 			TT_temp->Channel[i].Params = *(TT_Param *) DataRecieve;
 		} else {
@@ -999,7 +1000,6 @@ void WriteTTParams(uint8_t MezNum, int ChannelNumber, TT_Param* Params)
 
 void Set_TTDefaultParams(uint8_t MezNum)
 {
-	unsigned char * DataToWrite;
 	int i;
 	TT_Coeff * Coeffs;
 	TT_Level * Levels;
@@ -1014,15 +1014,15 @@ void Set_TTDefaultParams(uint8_t MezNum)
 		Coeffs->p_max = -1500;
 		Coeffs->p_min = -233;
 
-		Coeffs->CRC = Crc16((uint8_t *) &(Coeffs), offsetof(TT_Coeff, CRC)); //TODO fix TT_Coeff size  possibly works
+		Coeffs->CRC = Crc16((uint8_t *) (Coeffs), offsetof(TT_Coeff, CRC)); //TODO fix TT_Coeff size  possibly works
 
-		Levels->Min_P_Level = 20;
-		Levels->Max_P_Level = 40;
+		Levels->Min_W_Level = 20;
+		Levels->Max_W_Level = 40;
 		Levels->Min_A_Level = 15;
 		Levels->Max_A_Level = 45;
-		Levels->Sense = 0.2;
+		Levels->Sense = 1;
 
-		Levels->CRC = Crc16((uint8_t *) &(Levels), offsetof(TT_Level, CRC)); //TODO fix TT_Level size  possibly works
+		Levels->CRC = Crc16((uint8_t *) (Levels), offsetof(TT_Level, CRC)); //TODO fix TT_Level size  possibly works
 
 	    Params->MeasTime = 20;
 	    Params->Mode = 0;
@@ -1030,6 +1030,8 @@ void Set_TTDefaultParams(uint8_t MezNum)
 	    Params->MaxD = 20;
 	    Params->MinF = 0;
 	    Params->MaxF = 100;
+
+	    Params->CRC = Crc16((uint8_t *) (Params), offsetof(TT_Param, CRC)); //TODO fix TT_Param size  possibly works
 
 		WriteTTCoeffs(MezNum, i, Coeffs);
 		WriteTTLevels(MezNum, i, Levels);

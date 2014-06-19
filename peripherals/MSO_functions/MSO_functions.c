@@ -1,3 +1,4 @@
+#include "FreeRTOS.h"
 #include "MSO_functions.h"
 #include "PCA9532/PCA9532.h"
 #include "twi/twi.h"
@@ -607,7 +608,7 @@ void WDT_Refresh(void)
  MaxLen: 4095 байт (32767 бит) - обнаружение
  одинарных, двойных, тройных и всех нечетных ошибок
  */
-unsigned short Crc16(unsigned char *Data, unsigned short len)
+uint16_t Crc16(uint8_t *Data, uint16_t len)
 /*{
  unsigned char *p = data;
  unsigned short CRC = 0, buf;
@@ -623,7 +624,7 @@ unsigned short Crc16(unsigned char *Data, unsigned short len)
  }*/
 
 {
-	unsigned int crc = *Data;
+	uint32_t crc = *Data;
 	len--;
 //	unsigned char i;
 
