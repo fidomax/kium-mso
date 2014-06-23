@@ -227,6 +227,9 @@ void Mez_TI_init(mezonin *MezStruct);
 
 void Mez_NOT_init(void);
 
+void TCValueHandler (Mez_Value *Mez_V);
+void TTValueHandler (Mez_Value *Mez_V);
+
 uint32_t Get_TTParams(TT_Value *TT_temp);
 uint32_t Get_TTCoeffs(TT_Value *TT_temp);
 
@@ -251,6 +254,7 @@ void Mez_TU_handler(mezonin *MezStruct);
 // функции обработки ТТ
 //------------------------------------------------------------------------------
 void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/);
+void TTTickHandler(void);
 
 void Mez_TT_Calib(mezonin *MezStruct, uint32_t Channel_Num, uint32_t flag);
 

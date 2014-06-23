@@ -134,7 +134,7 @@ extern void CAN1_ISR(void) __attribute__((naked));
 #define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 5 )
 #define mainUIP_TASK_STACK_SIZE_MIN		( configMINIMAL_STACK_SIZE * 3 )
 
-volatile char MSO_Address;
+volatile uint8_t MSO_Address;
 
 SemaphoreHandle_t xTWISemaphore;
 QueueHandle_t xCanQueue, xMezQueue, xMezTUQueue;
@@ -368,7 +368,7 @@ void CanHandler(void *p)
 											(unsigned char *) &(Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Params),
 											4/*sizeof (TC_Param) - sizeof(unsigned short)*/);
 									if (xTWISemaphore != NULL) {
-										if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+										if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 											a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + 1, 0x00, sizeof(TC_Param),
 													(unsigned char *) &Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Params);
 											vTaskDelayUntil(&xLastWakeTime, 10);
@@ -659,6 +659,7 @@ void Mez_TI_Task(void *p)
 		// Perform action here.
 	}
 }
+//------------------------------------------//*//------------------------------------------------
 void SendCanMessage(uint32_t id, uint32_t data_l, uint32_t data_h)
 {
 	Message Send_Message;
@@ -669,21 +670,17 @@ void SendCanMessage(uint32_t id, uint32_t data_l, uint32_t data_h)
 	Send_Message.canID = 0;
 
 	CAN_Write(&Send_Message);
-//	Send_Message.canID = 1;
-//	CAN_Write(&Send_Message);
+	Send_Message.canID = 1;
+	CAN_Write(&Send_Message);
 }
 //------------------------------------------//*//------------------------------------------------
+
 void MezValue(void *p)
 {
-	uint32_t Count;
-//	uint32_t identifier;
-	Mez_Value Mez_V;
-	uint32_t ChannelNumber;
 
-	uint32_t ValueTC_temp, StateTC_temp/*,temp1,temp2*/;
-	//Message Send_Message;
-	//int32_t n, i;
-	uint32_t ID;
+	Mez_Value Mez_V;
+
+
 
 	for (;;) {
 		if (xMezQueue != 0) {
@@ -691,37 +688,7 @@ void MezValue(void *p)
 
 				switch (mezonin_my[Mez_V.ID].Mez_Type) {
 					case Mez_TC:
-						ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-						ID = MAKE_CAN_ID(priority_N, identifier_TC, MSO_Address, ChannelNumber, ParamTC);
-						TC_Channel * tc_channel = &Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel];
-						ValueTC_temp = tc_channel->Value;
-						StateTC_temp = tc_channel->State;
-						if ((ValueTC_temp != (Mez_V.Value & 1)) || (StateTC_temp != (Mez_V.Value >> 1))) { // если ТС изменился
-
-							tc_channel->Value = Mez_V.Value & 1;
-							tc_channel->State = Mez_V.Value >> 1; // доработать со сдвигами
-							SendCanMessage(ID, tc_channel->Value, tc_channel->State);
-							/*ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-							Send_Message.real_Identifier = AT91C_CAN_MIDE
-									| priority_N << 26| identifier_TC << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamFV; // составление идентификатора для посылки
-
-									/*						n = 0;
-									 while (!n) {
-									 for (i = 12; i < 16; i++) {
-									 AT91PS_CAN_MB CAN_Mailbox = (AT91PS_CAN_MB)((uint32_t)AT91C_BASE_CAN0_MB0 + (uint32_t)(0x20 * i));
-									 if ((CAN_Mailbox->CAN_MB_MSR & AT91C_CAN_MRDY)|| ((CAN_Mailbox->CAN_MB_MMR & AT91C_CAN_MOT)==0))n=i;
-									 break;
-									 }
-									 }*/
-
-							/*Send_Message.data_low_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].Value;
-							Send_Message.data_high_reg = Mezonin_TC[Mez_V.ID].Channel[Mez_V.Channel].State;
-							Send_Message.canID = 0;
-
-							CAN_Write(&Send_Message);
-							Send_Message.canID = 1;
-							CAN_Write(&Send_Message);*/
-						}
+						TCValueHandler(&Mez_V);
 
 						break;
 
@@ -729,64 +696,7 @@ void MezValue(void *p)
 						break;
 
 					case Mez_TT:
-						ChannelNumber = Mez_V.ID * 4 + Mez_V.Channel;
-						ID = MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, ChannelNumber, ParamFV);
-						Count = Mez_V.Value;	// сколько намотал счетчик
-						TT_Channel * tt_channel = &Mezonin_TT[Mez_V.ID].Channel[Mez_V.Channel];
-						tt_channel->Value = Mez_TT_Frequency(Count, Mez_V.Channel, Mez_V.ID);
-
-						// анализировать состояние
-						if ((tt_channel->Value > tt_channel->Levels.Max_W_Level) || (tt_channel->Value < tt_channel->Levels.Min_W_Level)) {
-							if ((tt_channel->Value > tt_channel->Levels.Max_A_Level) || (tt_channel->Value < tt_channel->Levels.Min_A_Level)) {
-								if (tt_channel->State != STATE_ALARM) {
-									tt_channel->State = STATE_ALARM; // аварийный порог
-									tt_channel->OldValue = tt_channel->Value;
-									SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-								}
-							}else {
-								if (tt_channel->State != STATE_WARNING) {
-									tt_channel->State = STATE_WARNING; // предупредительный порог
-									tt_channel->OldValue = tt_channel->Value;
-									SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-								}
-							}
-						} else {
-							if (tt_channel->State != STATE_OK) {
-								tt_channel->State = STATE_OK;
-								tt_channel->OldValue = tt_channel->Value;
-								SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-							}
-						}
-						if (tt_channel->Params.Mode == 0x04) {
-							if (tt_channel->State != STATE_MASK) {
-								tt_channel->State = STATE_MASK; // выключен
-								SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-							}
-						}
-
-						//tempTT = channel.Value - channel.OldValue;
-						//temp1TT = channel.OldValue - channel.Value;
-
-						if (fabs(tt_channel->Value - tt_channel->OldValue) > tt_channel->Levels.Sense)
-						/*|| temp1TT > channel.Levels.Sense
-						 || channel.State == 0x0A || channel.State == 0x10
-						 || channel.State == 0x11)*/
-
-						{
-							tt_channel->OldValue = tt_channel->Value;
-							SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-							/*Send_Message.real_Identifier = MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, ChannelNumber, ParamFV);	// составление идентификатора для посылки
-							 //									| priority_N << 26| identifier_TT << 18 | MSO_Address << 10 | ChannelNumber << 4 | ParamTC; // составление идентификатора для посылки
-
-							 *((float *) &(Send_Message.data_low_reg)) = channel->Value;
-							 Send_Message.data_high_reg = channel->State;
-							 Send_Message.canID = 0;
-
-							 CAN_Write(&Send_Message);
-							 Send_Message.canID = 1;
-							 CAN_Write(&Send_Message);*/
-
-						}
+						TTValueHandler(&Mez_V);
 
 						break;
 
@@ -815,7 +725,7 @@ void MezRec(void *p) // распознование типа мезонина
 	int32_t i;
 	signed char a;
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 			MSO_Address = Switch8_Read(); // Определение адреса МСО
 		}
 		xSemaphoreGive(xTWISemaphore);
@@ -826,7 +736,7 @@ void MezRec(void *p) // распознование типа мезонина
 		Mezonin_TT[i].ID = i;
 		Mezonin_TC[i].ID = i;
 		if (xTWISemaphore != NULL) {
-			if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+			if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 				mezonin_my[i].Mez_Type = Mez_Recognition(i); // Определение типа мезонина
 				xSemaphoreGive(xTWISemaphore);
 			}
@@ -855,7 +765,7 @@ void MezRec(void *p) // распознование типа мезонина
 			case Mez_TC:
 				GreenLeds |= LED_ON(i);
 				if ((xTWISemaphore != NULL )) {
-					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 						if (Get_TCParams(&Mezonin_TC[i]) == 0) {
 							xTaskCreate(Mez_TC_Task, "Mez_TC_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
@@ -869,7 +779,7 @@ void MezRec(void *p) // распознование типа мезонина
 			case Mez_TU:
 				GreenLeds |= LED_ON(i);
 				if ((xTWISemaphore != NULL )) {
-					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 						if (Get_TUParams(&Mezonin_TU[i]) == 0) {
 							xTaskCreate(Mez_TU_Task, "Mez_TU" + a, mainUIP_TASK_STACK_SIZE_MIN, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
@@ -883,7 +793,7 @@ void MezRec(void *p) // распознование типа мезонина
 			case Mez_TT:
 				GreenLeds |= LED_ON(i);
 				if ((xTWISemaphore != NULL )) {
-					if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 						if ((Get_TTParams(&Mezonin_TT[i]) || Get_TTCoeffs(&Mezonin_TT[i]) || Get_TTLevels(&Mezonin_TT[i])) == 0) {
 							xTaskCreate(Mez_TT_Task, "MEZ_TT_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
@@ -915,7 +825,7 @@ void MezRec(void *p) // распознование типа мезонина
 		}
 	}
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 			TWI_StartWrite(AT91C_BASE_TWI, (unsigned char) PCA9532_address, (PCA9532_LS0 | PCA9532_AUTO_INCR), 1);
 			TWI_WriteByte(AT91C_BASE_TWI, RedLeds);
 			Wait_THR_Ready();
@@ -937,7 +847,7 @@ void MezSetDefaultConfig(void * p)
 	uint32_t Freq;
 	Freq = 100;
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 			MezType = Switch8_Read(); // Get Mez type to set
 		}
 		xSemaphoreGive(xTWISemaphore);
@@ -961,8 +871,6 @@ void MezSetDefaultConfig(void * p)
 			break;
 	}
 	xTaskCreate(LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);
-	//xTaskCreate( MezRec, "Recognition", mainUIP_TASK_STACK_SIZE_MED, &xMezHandle, mainUIP_PRIORITY, &xMezHandle);
-	//xTaskCreate( MezValue, "Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
 	vTaskDelete(*((TaskHandle_t *) p));
 }
 //------------------------------------------//*//------------------------------------------------
@@ -1060,36 +968,6 @@ static void prvSetupHardware(void)
 
 void vApplicationTickHook(void)
 {
-	static portBASE_TYPE xTaskWoken = pdFALSE;
-	int32_t i;
-	uint32_t PWM = 0;
-	for (i = 0; i < 4; i++) {
-		if (mezonin_my[i].Start) {
-			mezonin_my[i].Start = 0;
-			PWM |= mezonin_my[i].PWM_ID; //подача синхросигнала 2FIN
-		}
-
-	}
-	if (PWM) {
-		AT91C_BASE_PWMC->PWMC_ENA = PWM;
-	}
-	PWM = 0;
-	for (i = 0; i < 4; i++) {
-		if (mezonin_my[i].TickCount) {
-			mezonin_my[i].TickCount--;
-			if ((mezonin_my[i].TickCount) == 0) {
-				PWM |= mezonin_my[i].PWM_ID;
-			}
-
-		}
-
-	}
-	if (PWM) {
-		AT91C_BASE_PWMC->PWMC_DIS = PWM;
-	}
-	for (i = 0; i < 4; i++) {
-		if (mezonin_my[i].PWM_ID & PWM)
-			xSemaphoreGiveFromISR(mezonin_my[i].xSemaphore, &xTaskWoken);
-	}
+	TTTickHandler();
 }
 

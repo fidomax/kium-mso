@@ -1,6 +1,7 @@
 #include "boards/MSO_board.h"
 #include "MSO_functions/MSO_functions.h"
 #include "mezonin.h"
+#include "constant.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
@@ -9,6 +10,7 @@
 #include "../pwmc/pwmc.h"
 #include "../tc/tc.h"
 #include "../aic/aic.h"
+#include "global.h"
 uint32_t VVV[4][4];
 
 #define TC_OFF      0
@@ -28,13 +30,7 @@ uint32_t VVV[4][4];
 
 uint32_t overflow[4];		// массив значений перполнений счетчика TT
 
-extern TT_Value Mezonin_TT[4];
-extern TC_Value Mezonin_TC[4];
-extern TU_Value Mezonin_TU[4];
 
-extern QueueHandle_t xMezQueue;
-extern QueueHandle_t xMezTUQueue;
-extern SemaphoreHandle_t xTWISemaphore;
 
 uint32_t Min20, Min100, Max20, Max100;
 int16_t flag_calib;
@@ -63,7 +59,7 @@ uint8_t Mez_Recognition(uint8_t MezNum)
 int32_t Mez_SetType(uint8_t MezNum, uint8_t MezType)
 {
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 			MEZ_memory_Write(MezNum, 0x00, 0x00, 1, &MezType);
 			vTaskDelay(100);
 			xSemaphoreGive(xTWISemaphore);
@@ -452,6 +448,71 @@ void Mez_NOT_init(void)
 
 }
 //------------------------------------------------------------------------------
+void TCValueHandler (Mez_Value *Mez_V)
+{
+	uint32_t ChannelNumber;
+	uint32_t ID;
+	ChannelNumber = Mez_V->ID * 4 + Mez_V->Channel;
+	ID = MAKE_CAN_ID(priority_N, identifier_TC, MSO_Address, ChannelNumber, ParamTC);
+	TC_Channel * tc_channel = &Mezonin_TC[Mez_V->ID].Channel[Mez_V->Channel];
+
+	if ((tc_channel->Value != (Mez_V->Value & 1)) || (tc_channel->State != (Mez_V->Value >> 1))) { // если ТС изменился
+
+		tc_channel->Value = Mez_V->Value & 1;
+		tc_channel->State = Mez_V->Value >> 1; // доработать со сдвигами
+		SendCanMessage(ID, tc_channel->Value, tc_channel->State);
+	}
+}
+//------------------------------------------------------------------------------
+void TTValueHandler (Mez_Value *Mez_V)
+{
+	uint32_t ChannelNumber;
+	uint32_t ID;
+	uint32_t Count;
+	ChannelNumber = Mez_V->ID * 4 + Mez_V->Channel;
+	ID = MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, ChannelNumber, ParamFV);
+	Count = Mez_V->Value;	// сколько намотал счетчик
+	TT_Channel * tt_channel = &Mezonin_TT[Mez_V->ID].Channel[Mez_V->Channel];
+	tt_channel->Value = Mez_TT_Frequency(Count, Mez_V->Channel, Mez_V->ID);
+
+	// анализировать состояние
+	if ((tt_channel->Value > tt_channel->Levels.Max_W_Level) || (tt_channel->Value < tt_channel->Levels.Min_W_Level)) {
+		if ((tt_channel->Value > tt_channel->Levels.Max_A_Level) || (tt_channel->Value < tt_channel->Levels.Min_A_Level)) {
+			if (tt_channel->State != STATE_ALARM) {
+				tt_channel->State = STATE_ALARM; // аварийный порог
+				tt_channel->OldValue = tt_channel->Value;
+				SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+			}
+		}else {
+			if (tt_channel->State != STATE_WARNING) {
+				tt_channel->State = STATE_WARNING; // предупредительный порог
+				tt_channel->OldValue = tt_channel->Value;
+				SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+			}
+		}
+	} else {
+		if (tt_channel->State != STATE_OK) {
+			tt_channel->State = STATE_OK;
+			tt_channel->OldValue = tt_channel->Value;
+			SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+		}
+	}
+	if (tt_channel->Params.Mode == 0x04) {
+		if (tt_channel->State != STATE_MASK) {
+			tt_channel->State = STATE_MASK; // выключен
+			SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+		}
+	}
+
+
+	if (fabs(tt_channel->Value - tt_channel->OldValue) > tt_channel->Levels.Sense)
+
+	{
+		tt_channel->OldValue = tt_channel->Value;
+		SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+	}
+}
+//------------------------------------------------------------------------------
 /*void Mez_handler_select (uint32_t Mezonin_Type, mezonin *MezStruct)
  {
  switch (Mezonin_Type)
@@ -605,6 +666,40 @@ void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
 	}
 }
 //------------------------------------------------------------------------------
+void TTTickHandler(void)
+{
+	static portBASE_TYPE xTaskWoken = pdFALSE;
+	int32_t i;
+	uint32_t PWM = 0;
+	for (i = 0; i < 4; i++) {
+		if (mezonin_my[i].Start) {
+			mezonin_my[i].Start = 0;
+			PWM |= mezonin_my[i].PWM_ID; //подача синхросигнала 2FIN
+		}
+
+	}
+	if (PWM) {
+		AT91C_BASE_PWMC->PWMC_ENA = PWM;
+	}
+	PWM = 0;
+	for (i = 0; i < 4; i++) {
+		if (mezonin_my[i].TickCount) {
+			mezonin_my[i].TickCount--;
+			if ((mezonin_my[i].TickCount) == 0) {
+				PWM |= mezonin_my[i].PWM_ID;
+			}
+
+		}
+
+	}
+	if (PWM) {
+		AT91C_BASE_PWMC->PWMC_DIS = PWM;
+	}
+	for (i = 0; i < 4; i++) {
+		if (mezonin_my[i].PWM_ID & PWM)
+			xSemaphoreGiveFromISR(mezonin_my[i].xSemaphore, &xTaskWoken);
+	}
+}
 //------------------------------------------------------------------------------
 void Mez_TT_Calib(mezonin *MezStruct, uint32_t Channel_Num, uint32_t flag/*, TT_Value *Mez_TT_temp*/)
 {
@@ -723,7 +818,7 @@ void Mez_TT_Calib(mezonin *MezStruct, uint32_t Channel_Num, uint32_t flag/*, TT_
 					(uint8_t *) &(Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs), sizeof(TT_Coeff) - sizeof(uint16_t) - 2);
 
 			if (xTWISemaphore != NULL) {
-				if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+				if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 					a = MEZ_memory_Write(MezStruct->Mez_ID - 1, Channel_Num + 5, 0x00, sizeof(TT_Coeff),
 							(uint8_t *) &Mezonin_TT[MezStruct->Mez_ID - 1].Channel[Channel_Num].Coeffs);
 					vTaskDelayUntil(&xLastWakeTime, 10);
@@ -944,7 +1039,7 @@ void Set_TCDefaultParams(uint8_t MezNum)
 		Params->Mode = 8;
 		Params->CRC = Crc16((uint8_t *) Params, offsetof(TC_Param, CRC)); //TODO fix TCParams size possibly works
 		if (xTWISemaphore != NULL) {
-			if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
+			if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 				MEZ_memory_Write(MezNum, i + 1, 0x00, sizeof(TC_Param), (uint8_t *) Params);
 				vTaskDelay(100);
 				xSemaphoreGive(xTWISemaphore);
@@ -955,11 +1050,10 @@ void Set_TCDefaultParams(uint8_t MezNum)
 	}
 }
 //------------------------------------------------------------------------------
-
 void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs)
 {
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 			int a;
 			a = MEZ_memory_Write(MezNum, ChannelNumber + PageCoeff, 0x00, sizeof(TT_Coeff), (uint8_t *) Coeffs);
 			vTaskDelay(100);
@@ -972,11 +1066,11 @@ void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs)
 		}
 	}
 }
-
+//------------------------------------------------------------------------------
 void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels)
 {
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 			int a;
 			a = MEZ_memory_Write(MezNum, ChannelNumber + PageLevel, 0x00, sizeof(TT_Level), (uint8_t *) Levels);
 			vTaskDelay(100);
@@ -984,11 +1078,11 @@ void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels)
 		}
 	}
 }
-
+//------------------------------------------------------------------------------
 void WriteTTParams(uint8_t MezNum, int ChannelNumber, TT_Param* Params)
 {
 	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10) == pdTRUE) {
+		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 			int a;
 			a = MEZ_memory_Write(MezNum, ChannelNumber + PageParam, 0x00, sizeof(TT_Param), (uint8_t *) Params);
 			vTaskDelay(100);
@@ -996,8 +1090,7 @@ void WriteTTParams(uint8_t MezNum, int ChannelNumber, TT_Param* Params)
 		}
 	}
 }
-
-
+//------------------------------------------------------------------------------
 void Set_TTDefaultParams(uint8_t MezNum)
 {
 	int i;
@@ -1038,3 +1131,5 @@ void Set_TTDefaultParams(uint8_t MezNum)
 		WriteTTParams(MezNum, i, Params);
 	}
 }
+//------------------------------------------------------------------------------
+

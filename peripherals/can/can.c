@@ -40,6 +40,7 @@
 #include "queue.h"
 #include "task.h"
 #include "constant.h"
+#include "global.h"
 //------------------------------------------------------------------------------
 //         Local definitions
 //------------------------------------------------------------------------------
@@ -98,8 +99,7 @@ Message Actual_Message;
 #ifdef AT91C_BASE_CAN1
 //static CanTransfer *pCAN1Transfer = NULL;
 #endif
-//Message Actual_Message;
-extern QueueHandle_t xCanQueue;
+
 //------------------------------------------------------------------------------
 
 //         Local functions
