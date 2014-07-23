@@ -462,6 +462,8 @@ void TCValueHandler (Mez_Value *Mez_V)
 		tc_channel->State = Mez_V->Value >> 1; // доработать со сдвигами
 		SendCanMessage(ID, tc_channel->Value, tc_channel->State);
 	}
+
+
 }
 //------------------------------------------------------------------------------
 void TTValueHandler (Mez_Value *Mez_V)
@@ -601,7 +603,7 @@ void Mez_TC_handler(mezonin *MezStruct)
 			// Send an unsigned long.  Wait for 10 ticks for space to become
 			// available if necessary.
 			//		Switch_State=Value;
-			if (xQueueSend(xMezQueue, &Real_TC, (TickType_t ) 0)) {
+			if (xQueueSend(xMezQueue, &Real_TC, /*(TickType_t ) 0*/portMAX_DELAY)) {
 				//	       test++;     // Failed to post the message, even after 10 ticks.
 			}
 		}

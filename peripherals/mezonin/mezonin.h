@@ -242,6 +242,7 @@ void Set_TTDefaultParams(uint8_t MezNum);
 
 void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs);
 void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels);
+void WriteTTParams(uint8_t MezNum, int ChannelNumber, TT_Param* Params);
 
 //========================handler functions===============================
 void Mez_handler_select(int32_t Mezonin_Type, mezonin *MezStruct);

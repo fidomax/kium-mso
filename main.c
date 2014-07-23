@@ -190,6 +190,20 @@ void PCA9532_init(void)
 
 }
 //------------------------------------------//*//------------------------------------------------
+void SendCanMessage(uint32_t id, uint32_t data_l, uint32_t data_h)
+{
+	Message Send_Message;
+	Send_Message.real_Identifier = id;
+
+	Send_Message.data_low_reg = data_l;
+	Send_Message.data_high_reg = data_h;
+	Send_Message.canID = 0;
+
+	CAN_Write(&Send_Message);
+	Send_Message.canID = 1;
+	CAN_Write(&Send_Message);
+}
+//------------------------------------------//*//------------------------------------------------
 void CanHandler(void *p)
 {
 	TickType_t xLastWakeTime;
@@ -260,18 +274,9 @@ void CanHandler(void *p)
 						case identifier_Level:
 							switch (Param) {
 								case ParamWrite: {
-									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.CRC = Crc16(
-											(unsigned char *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels),
-											sizeof(TT_Level) - sizeof(unsigned short) - 2);
+									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.CRC = Crc16((uint8_t *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels), offsetof(TT_Level, CRC));
+
 									WriteTTLevels(Channel_Num / 4, Channel_Num % 4, &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
-									/*if (xTWISemaphore != NULL) {
-									 if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
-									 a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageLevel, 0x00, sizeof(TT_Level),
-									 (unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
-									 vTaskDelayUntil(&xLastWakeTime, 10);
-									 xSemaphoreGive(xTWISemaphore);
-									 }
-									 }*/
 								}
 									break;
 								case ParamMinPred:
@@ -327,18 +332,9 @@ void CanHandler(void *p)
 						case identifier_ParamTT:
 							switch (Param) {
 								case ParamWrite: {
-									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16(
-											(unsigned char *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params),
-											sizeof(TT_Param) - sizeof(unsigned short) - 2);
+									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16((uint8_t *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params), offsetof(TT_Param, CRC));
+									WriteTTParams(Channel_Num / 4, Channel_Num % 4, &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params);
 
-									/*if (xTWISemaphore != NULL) {
-									 if (xSemaphoreTake( xTWISemaphore, ( TickType_t ) 10 ) == pdTRUE) {
-									 a = MEZ_memory_Write(Channel_Num / 4, Channel_Num % 4 + PageParam, 0x00, sizeof(TT_Param),
-									 (unsigned char *) &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params);
-									 vTaskDelayUntil(&xLastWakeTime, 10);
-									 xSemaphoreGive(xTWISemaphore);
-									 }
-									 }*/
 								}
 									break;
 								case ParamMode:
@@ -659,20 +655,7 @@ void Mez_TI_Task(void *p)
 		// Perform action here.
 	}
 }
-//------------------------------------------//*//------------------------------------------------
-void SendCanMessage(uint32_t id, uint32_t data_l, uint32_t data_h)
-{
-	Message Send_Message;
-	Send_Message.real_Identifier = id;
 
-	Send_Message.data_low_reg = data_l;
-	Send_Message.data_high_reg = data_h;
-	Send_Message.canID = 0;
-
-	CAN_Write(&Send_Message);
-	Send_Message.canID = 1;
-	CAN_Write(&Send_Message);
-}
 //------------------------------------------//*//------------------------------------------------
 
 void MezValue(void *p)
@@ -885,7 +868,7 @@ int main(void)
 	prvSetupHardware();
 	vSemaphoreCreateBinary(xTWISemaphore);
 	xCanQueue = xQueueCreate(64, sizeof(Message));
-	xMezQueue = xQueueCreate(16, sizeof(Mez_Value));
+	xMezQueue = xQueueCreate(32, sizeof(Mez_Value));
 	xMezTUQueue = xQueueCreate(16, sizeof(Mez_Value));
 	switch (Switch2_Read()) {
 		case MSO_MODE_WORK:

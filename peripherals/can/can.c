@@ -393,6 +393,7 @@ unsigned char CAN_Write(Message *CanMessage)
 
 
 	while (num) {
+		//vTaskDelay(1000);
 		if (CanMessage->canID == 0) {
 			base_can = AT91C_BASE_CAN0;
 			mb_ptr = AT91C_BASE_CAN0_MB0+START_TX_MB;
@@ -400,7 +401,8 @@ unsigned char CAN_Write(Message *CanMessage)
 			base_can = AT91C_BASE_CAN1;
 			mb_ptr = AT91C_BASE_CAN1_MB0+START_TX_MB;
 		}
-		for (num = START_TX_MB; num < NB_MB; num++, mb_ptr++) {	// Search the first free MB
+		for (num = START_TX_MB; num < NB_MB; num++,mb_ptr++) {	// Search the first free MB
+
 			if (mb_ptr->CAN_MB_MSR & AT91C_CAN_MRDY) {
 				mb_ptr->CAN_MB_MMR = AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR;
 				mb_ptr->CAN_MB_MDL = CanMessage->data_low_reg;
@@ -414,6 +416,7 @@ unsigned char CAN_Write(Message *CanMessage)
 			}
 
 		}
+		//if (num) vTaskDelay(1000);
 	}
 
 
