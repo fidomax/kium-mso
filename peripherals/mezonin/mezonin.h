@@ -56,6 +56,7 @@ typedef struct _mezonin
 	uint32_t ActiveChannel;
 	SemaphoreHandle_t xSemaphore;
 	QueueHandle_t TUQueue;
+	QueueHandle_t TPQueue;
 } mezonin;
 
 //---------------определение типа для физической величины ТТ ------------------
@@ -207,7 +208,6 @@ typedef struct _TU_Value
 //---------------структура канала ТP (тип mezonin)----------------------
 typedef struct _TP_Channel
 {
-	uint8_t State;  	// состояние
 	float flDAC; 			//ФВ
 } TP_Channel;
 //---------------определение типа для ТP (тип mezonin)------------------

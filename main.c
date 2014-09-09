@@ -257,6 +257,20 @@ void CanHandler(void *p)
 
 				case priority_W:
 					switch (Type) {
+						case identifier_TR:
+							switch (Param) {
+								case 0:
+									test23.ID = Channel_Num / 4;
+									test23.Channel = Channel_Num % 4;
+									test23.fValue = Recieve_Message.data_low_reg;
+									if (mezonin_my[Channel_Num / 4].TPQueue != 0) {
+										if (xQueueSend(mezonin_my[Channel_Num / 4].TPQueue, &test23, (TickType_t ) 0)) {
+
+										}
+									}
+									break;
+							}
+							break;
 						case identifier_TU:
 							switch (Param) {
 								case 0:
@@ -391,6 +405,14 @@ void CanHandler(void *p)
 //					FillCanPacket(&canTransfer1, canID, 3, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 
 					switch (Type) {
+						case identifier_TR:
+							switch(Param){
+								case 0:
+									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TP[Channel_Num / 4].Channel.flDAC;
+
+									break;
+							}
+							break;
 						case identifier_TT:
 							switch (Param) {
 								case ParamFV:

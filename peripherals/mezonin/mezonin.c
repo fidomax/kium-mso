@@ -608,13 +608,21 @@ void Mez_TI_handler(mezonin *MezStruct)
 void Mez_TP_handler(mezonin *MezStruct)
 {
 	unsigned short usDAC;
-	TP_Value Real_TP;
-	if(Real_TP.Channel.flDAC>20.0){
-		usDAC=65535;
-	} else{
-		usDAC=Real_TP.Channel.flDAC/20*65535;
+	Mez_Value Real_TP;
+	if (MezStruct->TPQueue != 0) {
+		if (xQueueReceive(MezStruct->TPQueue, &Real_TP, 1000)) {
+			Mezonin_TP[Real_TP.ID].Channel.flDAC = Real_TP.fValue;
+			if(Mezonin_TP[Real_TP.ID].Channel.flDAC>20.0){
+				usDAC=65535;
+			} else{
+				usDAC=Mezonin_TP[Real_TP.ID].Channel.flDAC/20*65535;
+			}
+			SetDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, usDAC);
+		} else {
+			// время выдержки
+
+		}
 	}
-	SetDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, usDAC);
 }
 //------------------------------------------------------------------------------
 void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
