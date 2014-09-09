@@ -100,6 +100,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "queue.h"
 /* Demo application includes. */
 #include "partest.h"
 #include "constant.h"
@@ -263,9 +264,10 @@ void CanHandler(void *p)
 								case 1:
 									test23.ID = Channel_Num / 4;
 									test23.Channel = Channel_Num % 4;
-									test23.Value = Recieve_Message.data_low_reg;
-									if (xMezTUQueue != 0) {
-										if (xQueueSend(xMezTUQueue, &test23, (TickType_t ) 0)) {
+									test23.ui32Value = Recieve_Message.data_low_reg;
+									if (mezonin_my[Channel_Num / 4].TUQueue != 0) {
+										if (xQueueSend(mezonin_my[Channel_Num / 4].TUQueue, &test23, (TickType_t ) 0)) {
+
 										}
 									}
 									break;

@@ -55,13 +55,16 @@ typedef struct _mezonin
 	uint32_t TickCount;
 	uint32_t ActiveChannel;
 	SemaphoreHandle_t xSemaphore;
-
+	QueueHandle_t TUQueue;
 } mezonin;
 
 //---------------определение типа для физической величины ТТ ------------------
 typedef struct _Mez_Value
 {
-	uint32_t Value; // значение физической величины
+	union{
+		uint32_t ui32Value; // значение физической величины
+		float fValue; // значение физической величины
+	};
 	uint32_t Channel; // номер канала
 	int32_t ID; // номер мезонина
 
@@ -250,7 +253,6 @@ uint32_t Get_TUParams(TU_Value *TU_temp);
 
 void Set_TCDefaultParams(uint8_t MezNum);
 void Set_TTDefaultParams(uint8_t MezNum);
-void Set_TPDefaultParams(uint8_t MezNum);
 
 void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs);
 void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels);
