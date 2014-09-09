@@ -103,7 +103,7 @@
 	<variableList>
 		<variable>
 			<name>FreeRTOS_ROOT</name>
-			<value>file:/home/maximus/FreeRTOSV7.2.0</value>
+			<value>file:/home/maximus/FreeRTOSv8.0.1</value>
 		</variable>
 	</variableList>
 </projectDescription>
