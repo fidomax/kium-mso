@@ -55,17 +55,13 @@ typedef struct _mezonin
 	uint32_t TickCount;
 	uint32_t ActiveChannel;
 	SemaphoreHandle_t xSemaphore;
-	QueueHandle_t TUQueue;
 
 } mezonin;
 
 //---------------определение типа для физической величины ТТ ------------------
 typedef struct _Mez_Value
 {
-	union{
-		uint32_t ui32Value; // значение физической величины
-		float fValue; // значение физической величины
-	};
+	uint32_t Value; // значение физической величины
 	uint32_t Channel; // номер канала
 	int32_t ID; // номер мезонина
 
@@ -205,7 +201,18 @@ typedef struct _TU_Value
 	uint8_t PerTime;
 	int32_t ID; // номер мезонина
 } TU_Value;
-
+//---------------структура канала ТP (тип mezonin)----------------------
+typedef struct _TP_Channel
+{
+	uint8_t State;  	// состояние
+	float flDAC; 			//ФВ
+} TP_Channel;
+//---------------определение типа для ТP (тип mezonin)------------------
+typedef struct _TP_Value
+{
+	TP_Channel Channel; // номер канала
+	int32_t ID; // номер мезонина
+} TP_Value;
 //uint8_t Mez_Recognition_old (uint32_t MezMemoryLine, int8_t address);
 //==========================init functions===========================
 
@@ -243,6 +250,7 @@ uint32_t Get_TUParams(TU_Value *TU_temp);
 
 void Set_TCDefaultParams(uint8_t MezNum);
 void Set_TTDefaultParams(uint8_t MezNum);
+void Set_TPDefaultParams(uint8_t MezNum);
 
 void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs);
 void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels);
@@ -254,6 +262,8 @@ void Mez_handler_select(int32_t Mezonin_Type, mezonin *MezStruct);
 void Mez_TC_handler(mezonin *MezStruct);
 
 void Mez_TU_handler(mezonin *MezStruct);
+
+void Mez_TP_handler(mezonin *MezStruct);
 
 //------------------------------------------------------------------------------
 // функции обработки ТТ

@@ -9,6 +9,7 @@ extern QueueHandle_t xCanQueue;
 extern TT_Value Mezonin_TT[4];
 extern TC_Value Mezonin_TC[4];
 extern TU_Value Mezonin_TU[4];
+extern TP_Value Mezonin_TP[4];
 
 extern QueueHandle_t xMezQueue;
 extern QueueHandle_t xMezTUQueue;
