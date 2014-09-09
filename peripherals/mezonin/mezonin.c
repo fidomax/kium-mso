@@ -105,6 +105,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez1->ActiveChannel = 0;
 	vSemaphoreCreateBinary(Mez1->xSemaphore);
 	xSemaphoreTake(Mez1->xSemaphore, portMAX_DELAY);
+	Mez1->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 2
 //------------------------------------------------------------------------------
@@ -140,6 +141,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez2->ActiveChannel = 0;
 	vSemaphoreCreateBinary(Mez2->xSemaphore);
 	xSemaphoreTake(Mez2->xSemaphore, portMAX_DELAY);
+	Mez2->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
 
 //------------------------------------------------------------------------------
 // мезонин 3
@@ -176,6 +178,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez3->ActiveChannel = 0;
 	vSemaphoreCreateBinary(Mez3->xSemaphore);
 	xSemaphoreTake(Mez3->xSemaphore, portMAX_DELAY);
+	Mez3->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 4
 //------------------------------------------------------------------------------
@@ -211,6 +214,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	Mez4->ActiveChannel = 0;
 	vSemaphoreCreateBinary(Mez4->xSemaphore);
 	xSemaphoreTake(Mez4->xSemaphore, portMAX_DELAY);
+	Mez4->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
 }
 //------------------------------------------------------------------------------
 void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct)
@@ -456,10 +460,10 @@ void TCValueHandler (Mez_Value *Mez_V)
 	ID = MAKE_CAN_ID(priority_N, identifier_TC, MSO_Address, ChannelNumber, ParamTC);
 	TC_Channel * tc_channel = &Mezonin_TC[Mez_V->ID].Channel[Mez_V->Channel];
 
-	if ((tc_channel->Value != (Mez_V->Value & 1)) || (tc_channel->State != (Mez_V->Value >> 1))) { // если ТС изменился
+	if ((tc_channel->Value != (Mez_V->ui32Value & 1)) || (tc_channel->State != (Mez_V->ui32Value >> 1))) { // если ТС изменился
 
-		tc_channel->Value = Mez_V->Value & 1;
-		tc_channel->State = Mez_V->Value >> 1; // доработать со сдвигами
+		tc_channel->Value = Mez_V->ui32Value & 1;
+		tc_channel->State = Mez_V->ui32Value >> 1; // доработать со сдвигами
 		SendCanMessage(ID, tc_channel->Value, tc_channel->State);
 	}
 
@@ -473,7 +477,7 @@ void TTValueHandler (Mez_Value *Mez_V)
 	uint32_t Count;
 	ChannelNumber = Mez_V->ID * 4 + Mez_V->Channel;
 	ID = MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, ChannelNumber, ParamFV);
-	Count = Mez_V->Value;	// сколько намотал счетчик
+	Count = Mez_V->ui32Value;	// сколько намотал счетчик
 	TT_Channel * tt_channel = &Mezonin_TT[Mez_V->ID].Channel[Mez_V->Channel];
 	tt_channel->Value = Mez_TT_Frequency(Count, Mez_V->Channel, Mez_V->ID);
 
@@ -595,7 +599,7 @@ void Mez_TC_handler(mezonin *MezStruct)
 			MDATA = TC_OFF;
 //        	  TC_State[MezStruct->Mez_ID] = TC_OFF;
 		}
-		Real_TC.Value = MDATA | BRK << 1;
+		Real_TC.ui32Value = MDATA | BRK << 1;
 		Real_TC.Channel = MezStruct->ActiveChannel - 1;
 		Real_TC.ID = MezStruct->Mez_ID - 1;
 
@@ -654,7 +658,7 @@ void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
 			Channel_V = MezStruct->TC_ptr->TC_CV + 65536 * overflow[MezStruct->Mez_ID - 1]; //сохранение значения счетчика
 			VVV[MezStruct->Mez_ID - 1][MezStruct->ActiveChannel - 1] = Channel_V;
 
-			Real_Value.Value = Channel_V;
+			Real_Value.ui32Value = Channel_V;
 			Real_Value.Channel = MezStruct->ActiveChannel - 1;
 			Real_Value.ID = MezStruct->Mez_ID - 1;
 
@@ -881,9 +885,9 @@ void Mez_TU_handler(mezonin *MezStruct)
 			- 1].Params.Mode == mode_ok) {
 		Mez_EnableChannel(MezStruct);		// переделал под свою функцию
 
-		if (xMezTUQueue != 0) {
-			if (xQueueReceive(xMezTUQueue, &Real_TU, portMAX_DELAY)) {
-				Mezonin_TU[Real_TU.ID].Channel[Real_TU.Channel].Value = Real_TU.Value;
+		if (MezStruct->TUQueue != 0) {
+			if (xQueueReceive(MezStruct->TUQueue, &Real_TU, 1000)) {
+				Mezonin_TU[Real_TU.ID].Channel[Real_TU.Channel].Value = Real_TU.ui32Value;
 				MDATA[Real_TU.ID] = Mezonin_TU[Real_TU.ID].Channel[0].Value << 4 | Mezonin_TU[Real_TU.ID].Channel[1].Value << 5
 						| Mezonin_TU[Real_TU.ID].Channel[2].Value << 6 | Mezonin_TU[Real_TU.ID].Channel[3].Value << 7;		// пишем сразу в 4 канала
 
@@ -892,8 +896,10 @@ void Mez_TU_handler(mezonin *MezStruct)
 
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, MDATA[Real_TU.ID]);
 
-				// время выдержки
 
+
+			} else {
+				// время выдержки
 			}
 		}
 	}
