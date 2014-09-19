@@ -262,7 +262,7 @@ void CanHandler(void *p)
 								case 0:
 									test23.ID = Channel_Num / 4;
 									test23.Channel = Channel_Num % 4;
-									test23.fValue = Recieve_Message.data_low_reg;
+									test23.fValue = *((float *) &(Recieve_Message.data_low_reg));
 									if (mezonin_my[Channel_Num / 4].TPQueue != 0) {
 										if (xQueueSend(mezonin_my[Channel_Num / 4].TPQueue, &test23, (TickType_t ) 0)) {
 
