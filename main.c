@@ -644,14 +644,14 @@ void Mez_TP_Task(void *p)
 void Mez_TI_Task(void *p)
 {
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 200;
+	const TickType_t xFrequency = 1000;
 	int32_t Mez_num;
 
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 	Mez_num = (int32_t) p;
 	for (;;) {
-		Mez_TI_Task(&mezonin_my[Mez_num]);
+		Mez_TI_handler(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		// Perform action here.
 	}

@@ -35,6 +35,7 @@ uint32_t overflow[4];		// массив значений перполнений �
 uint32_t Min20, Min100, Max20, Max100;
 int16_t flag_calib;
 
+uint32_t TI[4];
 //------------------------------------------------------------------------------
 // выбор памяти одного из мезонинов
 void Mez_Select(uint32_t MezMemoryLine)
@@ -238,7 +239,7 @@ void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct)
 			break;
 
 		case Mez_TI:
-			Mez_TI_init(MezStruct);
+			Mez_TU_init(MezStruct);
 			break;
 
 		case Mez_NOT:
@@ -276,7 +277,7 @@ void Mez_TU_init(mezonin *MezStruct)
 
 	SPI_Pin_config();
 
-	CS_configuration = AT91C_SPI_BITS_8 | AT91C_SPI_NCPHA | 0x30 << 8;
+	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x10 << 8 | 0x1F << 24 | 0x1F << 16;
 
 	SPI0_configuration = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS | AT91C_SPI_PS_VARIABLE | 0x00 << 16;
 	SPI_Configure(AT91C_BASE_SPI0, AT91C_ID_SPI0, SPI0_configuration);
@@ -616,11 +617,6 @@ void Mez_TC_handler(mezonin *MezStruct)
 
 }
 //------------------------------------------------------------------------------
-void Mez_TI_handler(mezonin *MezStruct)
-{
-
-}
-//------------------------------------------------------------------------------
 void Mez_TP_handler(mezonin *MezStruct)
 {
 
@@ -892,10 +888,11 @@ void Mez_TU_handler(mezonin *MezStruct)
 						| Mezonin_TU[Real_TU.ID].Channel[2].Value << 6 | Mezonin_TU[Real_TU.ID].Channel[3].Value << 7;		// пишем сразу в 4 канала
 
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
+				SPI_Read(AT91C_BASE_SPI0);
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
-
+				SPI_Read(AT91C_BASE_SPI0);
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, MDATA[Real_TU.ID]);
-
+				SPI_Read(AT91C_BASE_SPI0);
 
 
 			} else {
@@ -903,6 +900,30 @@ void Mez_TU_handler(mezonin *MezStruct)
 			}
 		}
 	}
+
+}
+//------------------------------------------------------------------------------
+void Mez_TI_handler(mezonin *MezStruct)
+{
+ volatile uint32_t i;
+
+	Mez_Value Real_TU;
+
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x10);
+//	for(i=0; i<100; i++);
+	SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x11);
+//	for(i=0; i<100; i++);
+	TI[0]+=SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x12);
+//	for(i=0; i<100; i++);
+	TI[1]+=SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x13);
+//	for(i=0; i<100; i++);
+	TI[2]+=SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x00);
+//	for(i=0; i<100; i++);
+	TI[3]+=SPI_Read(AT91C_BASE_SPI0);
 
 }
 //------------------------------------------------------------------------------

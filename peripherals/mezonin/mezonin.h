@@ -255,6 +255,7 @@ void Mez_TC_handler(mezonin *MezStruct);
 
 void Mez_TU_handler(mezonin *MezStruct);
 
+void Mez_TI_handler(mezonin *MezStruct);
 //------------------------------------------------------------------------------
 // функции обработки ТТ
 //------------------------------------------------------------------------------
