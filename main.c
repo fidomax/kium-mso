@@ -138,6 +138,7 @@ extern void CAN1_ISR(void) __attribute__((naked));
 volatile uint8_t MSO_Address;
 
 SemaphoreHandle_t xTWISemaphore;
+SemaphoreHandle_t xSPISemaphore;
 QueueHandle_t xCanQueue, xMezQueue, xMezTUQueue;
 
 CanTransfer canTransfer0;
@@ -148,11 +149,12 @@ CanTransfer canTransfer_new0;
 mezonin mezonin_my[4];
 
 TaskHandle_t xMezHandle;
+
 TT_Value Mezonin_TT[4];
-
 TC_Value Mezonin_TC[4];
-
 TU_Value Mezonin_TU[4];
+TR_Value Mezonin_TR[4];
+TI_Value Mezonin_TI[4];
 
 int32_t tt[100];
 int32_t c = 0;
@@ -256,6 +258,20 @@ void CanHandler(void *p)
 
 				case priority_W:
 					switch (Type) {
+						case identifier_TR:
+							switch (Param) {
+								case 0:
+									test23.ID = Channel_Num / 4;
+									test23.Channel = Channel_Num % 4;
+									test23.fValue = *((float *) &(Recieve_Message.data_low_reg));
+									if (mezonin_my[Channel_Num / 4].TPQueue != 0) {
+										if (xQueueSend(mezonin_my[Channel_Num / 4].TPQueue, &test23, (TickType_t ) 0)) {
+
+										}
+									}
+									break;
+							}
+							break;
 						case identifier_TU:
 							switch (Param) {
 								case 0:
@@ -266,6 +282,7 @@ void CanHandler(void *p)
 									test23.ui32Value = Recieve_Message.data_low_reg;
 									if (mezonin_my[Channel_Num / 4].TUQueue != 0) {
 										if (xQueueSend(mezonin_my[Channel_Num / 4].TUQueue, &test23, (TickType_t ) 0)) {
+
 										}
 									}
 									break;
@@ -389,6 +406,14 @@ void CanHandler(void *p)
 //					FillCanPacket(&canTransfer1, canID, 3, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 
 					switch (Type) {
+						case identifier_TR:
+							switch(Param){
+								case 0:
+									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TR[Channel_Num / 4].Channel.flDAC;
+
+									break;
+							}
+							break;
 						case identifier_TT:
 							switch (Param) {
 								case ParamFV:
@@ -491,10 +516,6 @@ void CanHandler(void *p)
 
 					break;
 			}
-
-//			vParTestToggleLED(0);
-//			CAN_ResetTransfer(&canTransfer_new1);
-//			CAN_ResetTransfer(&canTransfer_new0);
 		}
 	}
 }
@@ -527,61 +548,6 @@ void get_TY_state(void)
 	Prev_SPI_RDR_value = Cur_SPI_RDR_value;
 }
 //------------------------------------------//*//------------------------------------------------
-void MyTask4(void *p)
-{
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 1000;
-	xLastWakeTime = xTaskGetTickCount();
-//	char rxValue;
-	/*uint32_t SPI0_configuration, CS_configuration;
-
-	 AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, LED_0);
-
-	 SPI_Pin_config ();
-
-	 CS_configuration = AT91C_SPI_BITS_8 | AT91C_SPI_NCPHA | 0x30 << 8;
-
-	 SPI0_configuration = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS | AT91C_SPI_PS_FIXED | 0x00<<16;
-	 SPI_Configure (AT91C_BASE_SPI0, AT91C_ID_SPI0, SPI0_configuration);
-	 SPI_ConfigureNPCS (AT91C_BASE_SPI0, 0, CS_configuration);
-
-	 SPI_Enable(AT91C_BASE_SPI0);
-	 */
-	//Mez_init(mezonin_my[i].Mez_Type,&mezonin_my[i]);
-	Mez_TU_init(&mezonin_my[0]);
-
-	SPI_Write(AT91C_BASE_SPI0, 0, 0x00);
-	SPI_Write(AT91C_BASE_SPI0, 0, 0x00);
-
-//    TWI_Write(mezonin_my[2].Mez_Mem_address, 0x00, &DataToWrite, 1, TWI_LED);
-	for (;;) {
-		SPI_Write(AT91C_BASE_SPI0, 0, 0xF0);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x00);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x10);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x20);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x40);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x80);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-	}
-}
-
-//------------------------------------------//*//------------------------------------------------
 void Mez_TC_Task(void *p)
 {
 	TickType_t xLastWakeTime;
@@ -607,7 +573,12 @@ void Mez_TU_Task(void *p)
 
 	Mez_num = (int32_t) p;
 	for (;;) {
-		Mez_TU_handler(&mezonin_my[Mez_num]);
+		if (xSPISemaphore != NULL) {
+			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
+				Mez_TU_handler(&mezonin_my[Mez_num]);
+				xSemaphoreGive(xSPISemaphore);
+			}
+		}
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 }
@@ -635,7 +606,12 @@ void Mez_TP_Task(void *p)
 
 	Mez_num = (int32_t) p;
 	for (;;) {
-		Mez_TP_Task(&mezonin_my[Mez_num]);
+		if (xSPISemaphore != NULL) {
+			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
+				Mez_TP_handler(&mezonin_my[Mez_num]);
+				xSemaphoreGive(xSPISemaphore);
+			}
+		}
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 
@@ -651,7 +627,12 @@ void Mez_TI_Task(void *p)
 	xLastWakeTime = xTaskGetTickCount();
 	Mez_num = (int32_t) p;
 	for (;;) {
-		Mez_TI_handler(&mezonin_my[Mez_num]);
+		if (xSPISemaphore != NULL) {
+			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
+				Mez_TI_handler(&mezonin_my[Mez_num]);
+				xSemaphoreGive(xSPISemaphore);
+			}
+		}
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		// Perform action here.
 	}
@@ -719,13 +700,21 @@ void MezRec(void *p) // распознование типа мезонина
 		Mezonin_TU[i].ID = i;
 		Mezonin_TT[i].ID = i;
 		Mezonin_TC[i].ID = i;
+		Mezonin_TR[i].ID = i;
+		Mezonin_TI[i].ID = i;
 		if (xTWISemaphore != NULL) {
 			if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 				mezonin_my[i].Mez_Type = Mez_Recognition(i); // Определение типа мезонина
 				xSemaphoreGive(xTWISemaphore);
 			}
 		}
-		Mez_init(mezonin_my[i].Mez_Type, &mezonin_my[i]);
+
+		if (xSPISemaphore != NULL) {
+			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
+				Mez_init(mezonin_my[i].Mez_Type, &mezonin_my[i]);
+				xSemaphoreGive(xSPISemaphore);
+			}
+		}
 
 		switch (i) {
 			case 0:
@@ -791,7 +780,12 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TP:
 				GreenLeds |= LED_ON(i);
-				xTaskCreate(Mez_TP_Task, "Mez_TP" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
+				if ((xTWISemaphore != NULL )) {
+					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
+						xTaskCreate(Mez_TP_Task, "Mez_TP" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
+						xSemaphoreGive(xTWISemaphore);
+					}
+				}
 				break;
 
 			case Mez_TI:
@@ -858,6 +852,25 @@ void MezSetDefaultConfig(void * p)
 	vTaskDelete(*((TaskHandle_t *) p));
 }
 //------------------------------------------//*//------------------------------------------------
+void prvSetupSPIMaster (AT91S_SPI *spi)
+{
+	uint32_t SPI0_configuration, CS_configuration;
+
+	AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, LED_0);
+
+	SPI_Pin_config();
+
+	CS_configuration = AT91C_SPI_BITS_8 | AT91C_SPI_NCPHA | 0x30 << 8;
+
+	SPI0_configuration = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS | AT91C_SPI_PS_VARIABLE | 0x00 << 16;
+	SPI_Configure(AT91C_BASE_SPI0, AT91C_ID_SPI0, SPI0_configuration);
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 0, CS_configuration);
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 1, CS_configuration);
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 2, CS_configuration);
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 3, CS_configuration);
+
+	SPI_Enable(AT91C_BASE_SPI0);
+}
 /*
  * Starts all the other tasks, then starts the scheduler.
  */
@@ -867,7 +880,9 @@ int main(void)
 	Mez_PreInit(&mezonin_my[0], &mezonin_my[1], &mezonin_my[2], &mezonin_my[3]);
 
 	prvSetupHardware();
+	prvSetupSPIMaster(AT91C_BASE_SPI0);
 	vSemaphoreCreateBinary(xTWISemaphore);
+	vSemaphoreCreateBinary(xSPISemaphore);
 	xCanQueue = xQueueCreate(64, sizeof(Message));
 	xMezQueue = xQueueCreate(32, sizeof(Mez_Value));
 	xMezTUQueue = xQueueCreate(16, sizeof(Mez_Value));
