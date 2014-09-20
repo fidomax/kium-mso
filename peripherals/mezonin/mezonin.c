@@ -35,6 +35,7 @@ uint32_t overflow[4];		// массив значений перполнений �
 uint32_t Min20, Min100, Max20, Max100;
 int16_t flag_calib;
 
+uint32_t TI[4];
 //------------------------------------------------------------------------------
 // выбор памяти одного из мезонинов
 void Mez_Select(uint32_t MezMemoryLine)
@@ -237,7 +238,7 @@ void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct)
 			break;
 
 		case Mez_TI:
-			Mez_TI_init(MezStruct);
+			Mez_TU_init(MezStruct);
 			break;
 
 		case Mez_NOT:
@@ -266,9 +267,24 @@ void Mez_TC_init(mezonin *MezStruct)
 void Mez_TU_init(mezonin *MezStruct)
 {
 	uint32_t j;
+	uint32_t CS_configuration;
 	for (j = 0; j < 4; j++) {
 		Mezonin_TU[MezStruct->Mez_ID - 1].Channel[j].Value = 0xFF;
 	}
+	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x30 << 8;
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID - 1, CS_configuration);
+
+}
+//------------------------------------------------------------------------------
+void Mez_TR_init(mezonin *MezStruct)
+{
+	uint32_t j;
+	uint32_t CS_configuration;
+	for (j = 0; j < 4; j++) {
+		Mezonin_TR[MezStruct->Mez_ID - 1].Channel.flDAC = 0;
+	}
+	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x10 << 8 | 0x1F << 24 | 0x1F << 16;
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID - 1, CS_configuration);
 
 }
 //------------------------------------------------------------------------------
@@ -356,42 +372,7 @@ void Mez_EnableChannel(mezonin *MezStruct)
 	vTaskDelay(2);
 
 }
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-// EnableChannel (Channel) активирует выбранный канал
-// Входной параметр Channel - номер канала 1, 2, 3, 4.
-//------------------------------------------------------------------------------
-/*void Mez_TT_EnableChannel (uint32_t Channel, uint32_t A0, uint32_t A1)
- {
- switch (Channel)
- {
- case 1:
- AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A0 | A1);
- //Конфигурация канала:   0      0
- //                       А1    А0
- break;
 
- case 2:
- AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1);
- AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A0);
- //Конфигурация канала:   0      1
- //                       А1    А0
- break;
-
- case 3:
- AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A0);
- AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1);
- //Конфигурация канала:   1      0
- //                       А1    А0
- break;
-
- case 4:
- AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A0 | A1);
- //Конфигурация канала:   1      1
- //                       А1     А0
- break;
- }
- }*/
 //------------------------------------------------------------------------------
 float Mez_TT_Frequency(uint32_t measured_value, uint32_t ChannelNumber, uint32_t MEZ_ID) // нахождение физической величины
 {
@@ -600,26 +581,21 @@ void Mez_TC_handler(mezonin *MezStruct)
 
 }
 //------------------------------------------------------------------------------
-void Mez_TI_handler(mezonin *MezStruct)
-{
-
-}
-//------------------------------------------------------------------------------
 void Mez_TP_handler(mezonin *MezStruct)
 {
 	unsigned short usDAC;
-	Mez_Value Real_TP;
+	Mez_Value Real_TR;
 	if (MezStruct->TPQueue != 0) {
-		if (xQueueReceive(MezStruct->TPQueue, &Real_TP, 1000)) {
-			Mezonin_TP[Real_TP.ID].Channel.flDAC = Real_TP.fValue;
-			if(Mezonin_TP[Real_TP.ID].Channel.flDAC>20.0){
+		if (xQueueReceive(MezStruct->TPQueue, &Real_TR, 1000)) {
+			Mezonin_TR[Real_TR.ID].Channel.flDAC = Real_TR.fValue;
+			if(Mezonin_TR[Real_TR.ID].Channel.flDAC>20.0){
 				usDAC=65535;
 			} else{
-				usDAC=Mezonin_TP[Real_TP.ID].Channel.flDAC/20*65535;
+				usDAC=Mezonin_TR[Real_TR.ID].Channel.flDAC/20*65535;
 			}
 			SetDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, usDAC);
 		} else {
-			// время выдержки
+
 
 		}
 	}
@@ -891,9 +867,11 @@ void Mez_TU_handler(mezonin *MezStruct)
 						| Mezonin_TU[Real_TU.ID].Channel[2].Value << 6 | Mezonin_TU[Real_TU.ID].Channel[3].Value << 7;		// пишем сразу в 4 канала
 
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
+				SPI_Read(AT91C_BASE_SPI0);
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
-
+				SPI_Read(AT91C_BASE_SPI0);
 				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, MDATA[Real_TU.ID]);
+				SPI_Read(AT91C_BASE_SPI0);
 
 			} else {
 				// время выдержки
@@ -901,6 +879,30 @@ void Mez_TU_handler(mezonin *MezStruct)
 			}
 		}
 	}
+
+}
+//------------------------------------------------------------------------------
+void Mez_TI_handler(mezonin *MezStruct)
+{
+ volatile uint32_t i;
+
+	Mez_Value Real_TU;
+
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x10);
+//	for(i=0; i<100; i++);
+	SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x11);
+//	for(i=0; i<100; i++);
+	TI[0]+=SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x12);
+//	for(i=0; i<100; i++);
+	TI[1]+=SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x13);
+//	for(i=0; i<100; i++);
+	TI[2]+=SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x00);
+//	for(i=0; i<100; i++);
+	TI[3]+=SPI_Read(AT91C_BASE_SPI0);
 
 }
 //------------------------------------------------------------------------------

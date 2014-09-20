@@ -153,7 +153,8 @@ TaskHandle_t xMezHandle;
 TT_Value Mezonin_TT[4];
 TC_Value Mezonin_TC[4];
 TU_Value Mezonin_TU[4];
-TP_Value Mezonin_TP[4];
+TR_Value Mezonin_TR[4];
+TI_Value Mezonin_TI[4];
 
 int32_t tt[100];
 int32_t c = 0;
@@ -408,7 +409,7 @@ void CanHandler(void *p)
 						case identifier_TR:
 							switch(Param){
 								case 0:
-									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TP[Channel_Num / 4].Channel.flDAC;
+									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TR[Channel_Num / 4].Channel.flDAC;
 
 									break;
 							}
@@ -515,10 +516,6 @@ void CanHandler(void *p)
 
 					break;
 			}
-
-//			vParTestToggleLED(0);
-//			CAN_ResetTransfer(&canTransfer_new1);
-//			CAN_ResetTransfer(&canTransfer_new0);
 		}
 	}
 }
@@ -550,61 +547,6 @@ void get_TY_state(void)
 
 	Prev_SPI_RDR_value = Cur_SPI_RDR_value;
 }
-//------------------------------------------//*//------------------------------------------------
-void MyTask4(void *p)
-{
-	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 1000;
-	xLastWakeTime = xTaskGetTickCount();
-//	char rxValue;
-	/*uint32_t SPI0_configuration, CS_configuration;
-
-	 AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, LED_0);
-
-	 SPI_Pin_config ();
-
-	 CS_configuration = AT91C_SPI_BITS_8 | AT91C_SPI_NCPHA | 0x30 << 8;
-
-	 SPI0_configuration = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS | AT91C_SPI_PS_FIXED | 0x00<<16;
-	 SPI_Configure (AT91C_BASE_SPI0, AT91C_ID_SPI0, SPI0_configuration);
-	 SPI_ConfigureNPCS (AT91C_BASE_SPI0, 0, CS_configuration);
-
-	 SPI_Enable(AT91C_BASE_SPI0);
-	 */
-	//Mez_init(mezonin_my[i].Mez_Type,&mezonin_my[i]);
-	Mez_TU_init(&mezonin_my[0]);
-
-	SPI_Write(AT91C_BASE_SPI0, 0, 0x00);
-	SPI_Write(AT91C_BASE_SPI0, 0, 0x00);
-
-//    TWI_Write(mezonin_my[2].Mez_Mem_address, 0x00, &DataToWrite, 1, TWI_LED);
-	for (;;) {
-		SPI_Write(AT91C_BASE_SPI0, 0, 0xF0);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x00);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x10);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x20);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x40);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-
-		SPI_Write(AT91C_BASE_SPI0, 0, 0x80);
-		//get_TY_state ();
-		vTaskDelayUntil(&xLastWakeTime, xFrequency);
-	}
-}
-
 //------------------------------------------//*//------------------------------------------------
 void Mez_TC_Task(void *p)
 {
@@ -678,14 +620,19 @@ void Mez_TP_Task(void *p)
 void Mez_TI_Task(void *p)
 {
 	TickType_t xLastWakeTime;
-	const TickType_t xFrequency = 200;
+	const TickType_t xFrequency = 1000;
 	int32_t Mez_num;
 
 	// Initialise the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
 	Mez_num = (int32_t) p;
 	for (;;) {
-		Mez_TI_Task(&mezonin_my[Mez_num]);
+		if (xSPISemaphore != NULL) {
+			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
+				Mez_TI_handler(&mezonin_my[Mez_num]);
+				xSemaphoreGive(xSPISemaphore);
+			}
+		}
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 		// Perform action here.
 	}
@@ -753,7 +700,8 @@ void MezRec(void *p) // распознование типа мезонина
 		Mezonin_TU[i].ID = i;
 		Mezonin_TT[i].ID = i;
 		Mezonin_TC[i].ID = i;
-		Mezonin_TP[i].ID = i;
+		Mezonin_TR[i].ID = i;
+		Mezonin_TI[i].ID = i;
 		if (xTWISemaphore != NULL) {
 			if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 				mezonin_my[i].Mez_Type = Mez_Recognition(i); // Определение типа мезонина

@@ -150,7 +150,6 @@ typedef struct _TC_Channel
 typedef struct _TC_Value
 {
 	TC_Channel Channel[4]; // номер канала
-//	uint8_t PerTime;
 	int32_t ID; // номер мезонина
 } TC_Value;
 
@@ -167,7 +166,7 @@ typedef struct _TI_Channel
 {
 	uint8_t Value; 		// счетчик ФВ
 	uint8_t State;  	// состояние
-	unsigned long CountTI;	// счетчик импульсов
+	uint32_t CountTI;	// счетчик импульсов
 	TI_Param Params;		// параметры из EEPROM
 //  uint8_t			Mode;		// режим работы канала (On/Off)
 	// возможно будет дополняться
@@ -206,16 +205,17 @@ typedef struct _TU_Value
 	int32_t ID; // номер мезонина
 } TU_Value;
 //---------------структура канала ТP (тип mezonin)----------------------
-typedef struct _TP_Channel
+typedef struct _TR_Channel
 {
 	float flDAC; 			//ФВ
-} TP_Channel;
+} TR_Channel;
 //---------------определение типа для ТP (тип mezonin)------------------
-typedef struct _TP_Value
+typedef struct _TR_Value
 {
-	TP_Channel Channel; // номер канала
+	TR_Channel Channel; // номер канала
 	int32_t ID; // номер мезонина
-} TP_Value;
+} TR_Value;
+//---------------структура канала ТI (тип mezonin)----------------------
 //uint8_t Mez_Recognition_old (uint32_t MezMemoryLine, int8_t address);
 //==========================init functions===========================
 
@@ -264,6 +264,8 @@ void Mez_handler_select(int32_t Mezonin_Type, mezonin *MezStruct);
 void Mez_TC_handler(mezonin *MezStruct);
 
 void Mez_TU_handler(mezonin *MezStruct);
+
+void Mez_TI_handler(mezonin *MezStruct);
 
 void Mez_TP_handler(mezonin *MezStruct);
 
