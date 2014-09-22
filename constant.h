@@ -48,11 +48,11 @@
 #define ParamCalib0			((unsigned int)	0x5)	// калибровка 0
 #define ParamCalib20		((unsigned int)	0x6)	// калибровка 20
 #define ParamCalibEnd		((unsigned int)	0x7)	// калибровка отменена
-#define ParamMinPred		((unsigned int) 0x1)	// Предупредительный минимум
-#define ParamMaxPred		((unsigned int) 0x2)	// Предупредительный максимум	
-#define ParamMinAvar		((unsigned int) 0x3)	// Аварийный минимум	
-#define ParamMaxAvar		((unsigned int) 0x4)	// Аварийный максимум
-#define ParamSense			((unsigned int) 0x5)	// Чувствительность
+#define ParamMinWarn		((unsigned int) 0x1)	// Предупредительный минимум
+#define ParamMaxWarn		((unsigned int) 0x2)	// Предупредительный максимум
+#define ParamMinAlarm		((unsigned int) 0x3)	// Аварийный минимум
+#define ParamMaxAlarm		((unsigned int) 0x4)	// Аварийный максимум
+#define ParamSens			((unsigned int) 0x5)	// Чувствительность
 //------------------------------------------------------------------------------
 //		   Позиция в идентификаторе
 //------------------------------------------------------------------------------

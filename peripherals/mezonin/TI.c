@@ -31,25 +31,25 @@ void Mez_TI_handler(mezonin *MezStruct)
 	SPI_Read(AT91C_BASE_SPI0);
 	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x11);
 	Real_TI.ui32Value = SPI_Read(AT91C_BASE_SPI0);
-	Real_TI.Channel = 1;
+	Real_TI.Channel = 0;
 	if (xMezQueue != 0) {
 		xQueueSend(xMezQueue, &Real_TI, (TickType_t ) 0);
 	}
 	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x12);
 	Real_TI.ui32Value = SPI_Read(AT91C_BASE_SPI0);
-	Real_TI.Channel = 2;
+	Real_TI.Channel = 1;
 	if (xMezQueue != 0) {
 		xQueueSend(xMezQueue, &Real_TI, (TickType_t ) 0);
 	}
 	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x13);
 	Real_TI.ui32Value = SPI_Read(AT91C_BASE_SPI0);
-	Real_TI.Channel = 3;
+	Real_TI.Channel = 2;
 	if (xMezQueue != 0) {
 		xQueueSend(xMezQueue, &Real_TI, (TickType_t ) 0);
 	}
 	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x00);
 	Real_TI.ui32Value = SPI_Read(AT91C_BASE_SPI0);
-	Real_TI.Channel = 4;
+	Real_TI.Channel = 3;
 	if (xMezQueue != 0) {
 		xQueueSend(xMezQueue, &Real_TI, (TickType_t ) 0);
 	}
@@ -65,8 +65,8 @@ void TIValueHandler (Mez_Value *Mez_V)
 
 	if (Mez_V->ui32Value ) { // если есть импульсы
 
-		ti_channel->Value += Mez_V->ui32Value;
-		SendCanMessage(ID, ti_channel->Value);
+		ti_channel->CountTI += Mez_V->ui32Value;
+		SendCanMessage(ID, ti_channel->CountTI);
 	}
 
 

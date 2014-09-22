@@ -261,7 +261,7 @@ void CanHandler(void *p)
 						case identifier_TI:
 							switch (Param) {
 								case 0:
-									Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Value = Recieve_Message.data_low_reg;
+									Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].CountTI = Recieve_Message.data_low_reg;
 									break;
 							}
 							break;
@@ -304,19 +304,19 @@ void CanHandler(void *p)
 									WriteTTLevels(Channel_Num / 4, Channel_Num % 4, &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
 								}
 									break;
-								case ParamMinPred:
+								case ParamMinWarn:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_W_Level = *((float *) &(Recieve_Message.data_low_reg));
 									break;
-								case ParamMaxPred:
+								case ParamMaxWarn:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_W_Level = *((float *) &(Recieve_Message.data_low_reg));
 									break;
-								case ParamMinAvar:
+								case ParamMinAlarm:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_A_Level = *((float *) &(Recieve_Message.data_low_reg));
 									break;
-								case ParamMaxAvar:
+								case ParamMaxAlarm:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_A_Level = *((float *) &(Recieve_Message.data_low_reg));
 									break;
-								case ParamSense:
+								case ParamSens:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Sense = *((float *) &(Recieve_Message.data_low_reg));
 									break;
 							}
@@ -416,7 +416,8 @@ void CanHandler(void *p)
 						case identifier_TI:
 							switch(Param){
 								case 0:
-									Send_Message.data_low_reg = Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Value;
+									Send_Message.data_low_reg = Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].CountTI;
+									Send_Message.data_high_reg = 0;
 									break;
 							}
 							break;
@@ -478,23 +479,23 @@ void CanHandler(void *p)
 
 						case identifier_Level:
 							switch (Param) {
-								case ParamMinPred:
+								case ParamMinWarn:
 									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_W_Level;
 									Send_Message.data_high_reg = 0;
 									break;
-								case ParamMaxPred:
+								case ParamMaxWarn:
 									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_W_Level;
 									Send_Message.data_high_reg = 0;
 									break;
-								case ParamMinAvar:
+								case ParamMinAlarm:
 									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Min_A_Level;
 									Send_Message.data_high_reg = 0;
 									break;
-								case ParamMaxAvar:
+								case ParamMaxAlarm:
 									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Max_A_Level;
 									Send_Message.data_high_reg = 0;
 									break;
-								case ParamSense:
+								case ParamSens:
 									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.Sense;
 									Send_Message.data_high_reg = 0;
 									break;

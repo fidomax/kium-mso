@@ -176,7 +176,7 @@ typedef struct _TI_Param
 //---------------структура канала ТU (тип mezonin)----------------------
 typedef struct _TI_Channel
 {
-	uint8_t Value; 		// счетчик ФВ
+	uint32_t Value; 		// счетчик ФВ
 	uint8_t State;  	// состояние
 	uint32_t CountTI;	// счетчик импульсов
 	TI_Param Params;		// параметры из EEPROM
