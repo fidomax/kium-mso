@@ -238,7 +238,7 @@ void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct)
 			break;
 
 		case Mez_TI:
-			Mez_TU_init(MezStruct);
+			Mez_TI_init(MezStruct);
 			break;
 
 		case Mez_NOT:
@@ -372,7 +372,6 @@ void Mez_EnableChannel(mezonin *MezStruct)
 	vTaskDelay(2);
 
 }
-
 //------------------------------------------------------------------------------
 float Mez_TT_Frequency(uint32_t measured_value, uint32_t ChannelNumber, uint32_t MEZ_ID) // нахождение физической величины
 {
@@ -578,6 +577,11 @@ void Mez_TC_handler(mezonin *MezStruct)
 		}
 	}
 //        time=1000;while(time);
+
+}
+//------------------------------------------------------------------------------
+void Mez_TI_handler(mezonin *MezStruct)
+{
 
 }
 //------------------------------------------------------------------------------
@@ -1140,3 +1144,4 @@ void Set_TTDefaultParams(uint8_t MezNum)
 	}
 }
 //------------------------------------------------------------------------------
+
