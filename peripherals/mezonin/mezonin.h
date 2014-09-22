@@ -16,7 +16,7 @@
 #define   Mez_TC         0x01
 #define   Mez_TU         0x02
 #define   Mez_TT         0x03
-#define   Mez_TP         0x04
+#define   Mez_TR         0x04
 #define   Mez_TI         0x05
 //=====================================================================
 #define   Mez_MemAddr       0x50 //адрес памяти

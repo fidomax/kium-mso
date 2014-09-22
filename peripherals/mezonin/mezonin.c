@@ -233,8 +233,8 @@ void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct)
 			Mez_TT_init(MezStruct);
 			break;
 
-		case Mez_TP:
-			Mez_TP_init(MezStruct);
+		case Mez_TR:
+			Mez_TR_init(MezStruct);
 			break;
 
 		case Mez_TI:
@@ -285,6 +285,7 @@ void Mez_TR_init(mezonin *MezStruct)
 	}
 	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x10 << 8 | 0x1F << 24 | 0x1F << 16;
 	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID - 1, CS_configuration);
+	prvSetupDAC(AT91C_BASE_SPI0,MezStruct->Mez_ID-1);
 
 }
 //------------------------------------------------------------------------------
@@ -401,14 +402,15 @@ float Mez_TT_Frequency(uint32_t measured_value, uint32_t ChannelNumber, uint32_t
 // return corrected_value;
 }
 //------------------------------------------------------------------------------
-void Mez_TP_init(mezonin *MezStruct)
-{
-	prvSetupDAC(AT91C_BASE_SPI0,MezStruct->Mez_ID-1);
-}
-//------------------------------------------------------------------------------
 void Mez_TI_init(mezonin *MezStruct)
 {
-
+	uint32_t j;
+	uint32_t CS_configuration;
+	for (j = 0; j < 4; j++) {
+		Mezonin_TR[MezStruct->Mez_ID - 1].Channel.flDAC = 0;
+	}
+	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x10 << 8 | 0x1F << 24 | 0x1F << 16;
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID - 1, CS_configuration);
 }
 //------------------------------------------------------------------------------
 void Mez_NOT_init(void)
@@ -577,11 +579,6 @@ void Mez_TC_handler(mezonin *MezStruct)
 		}
 	}
 //        time=1000;while(time);
-
-}
-//------------------------------------------------------------------------------
-void Mez_TI_handler(mezonin *MezStruct)
-{
 
 }
 //------------------------------------------------------------------------------

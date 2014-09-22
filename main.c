@@ -665,7 +665,7 @@ void MezValue(void *p)
 
 						break;
 
-					case Mez_TP:
+					case Mez_TR:
 
 						break;
 
@@ -778,7 +778,7 @@ void MezRec(void *p) // распознование типа мезонина
 
 				break;
 
-			case Mez_TP:
+			case Mez_TR:
 				GreenLeds |= LED_ON(i);
 				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
