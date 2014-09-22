@@ -128,6 +128,7 @@ THUMB_SOURCE= \
 		math.c \
 		spi.c \
 		mezonin.c \
+		TI.c \
 		MSO_functions.c		
 
 ARM_SOURCE= \

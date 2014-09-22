@@ -402,17 +402,6 @@ float Mez_TT_Frequency(uint32_t measured_value, uint32_t ChannelNumber, uint32_t
 // return corrected_value;
 }
 //------------------------------------------------------------------------------
-void Mez_TI_init(mezonin *MezStruct)
-{
-	uint32_t j;
-	uint32_t CS_configuration;
-	for (j = 0; j < 4; j++) {
-		Mezonin_TR[MezStruct->Mez_ID - 1].Channel.flDAC = 0;
-	}
-	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x10 << 8 | 0x1F << 24 | 0x1F << 16;
-	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID - 1, CS_configuration);
-}
-//------------------------------------------------------------------------------
 void Mez_NOT_init(void)
 {
 
@@ -484,37 +473,6 @@ void TTValueHandler (Mez_Value *Mez_V)
 		SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
 	}
 }
-//------------------------------------------------------------------------------
-/*void Mez_handler_select (uint32_t Mezonin_Type, mezonin *MezStruct)
- {
- switch (Mezonin_Type)
- {
- case Mez_TC:
- Mez_TC_handler (MezStruct);
- break;
-
- case Mez_TY:
- Mez_TY_handler (MezStruct);
- break;
-
- case Mez_TT:
- Mez_TT_handler (MezStruct);
- break;
-
- case Mez_TP:
- Mez_TP_handler (MezStruct);
- break;
-
- case Mez_TI:
- Mez_TI_handler (MezStruct);
- break;
-
- case Mez_NOT:
- //    default:
- Mez_NOT_handler ();
- break;
- }
- }*/
 //------------------------------------------------------------------------------
 void Mez_NOT_handler(void)
 {
@@ -882,31 +840,6 @@ void Mez_TU_handler(mezonin *MezStruct)
 	}
 
 }
-//------------------------------------------------------------------------------
-void Mez_TI_handler(mezonin *MezStruct)
-{
- volatile uint32_t i;
-
-	Mez_Value Real_TU;
-
-	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x10);
-//	for(i=0; i<100; i++);
-	SPI_Read(AT91C_BASE_SPI0);
-	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x11);
-//	for(i=0; i<100; i++);
-	TI[0]+=SPI_Read(AT91C_BASE_SPI0);
-	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x12);
-//	for(i=0; i<100; i++);
-	TI[1]+=SPI_Read(AT91C_BASE_SPI0);
-	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x13);
-//	for(i=0; i<100; i++);
-	TI[2]+=SPI_Read(AT91C_BASE_SPI0);
-	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0x00);
-//	for(i=0; i<100; i++);
-	TI[3]+=SPI_Read(AT91C_BASE_SPI0);
-
-}
-//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 // присвоение порогов
 //------------------------------------------------------------------------------

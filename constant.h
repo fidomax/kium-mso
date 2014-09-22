@@ -13,6 +13,7 @@
 #define identifier_TR    	((unsigned int) 9)
 #define identifier_TC	 	((unsigned int) 10)
 #define identifier_TT	 	((unsigned int) 11)
+#define identifier_TI	 	((unsigned int) 12)
 #define identifier_Level 	((unsigned int) 15)
 #define identifier_Coeff 	((unsigned int) 16)
 #define identifier_ParamTT 	((unsigned int) 17)
@@ -31,6 +32,7 @@
 #define ParamFV				((unsigned int) 0x0)	// параметр для физической величины
 #define ParamWrite			((unsigned int)	0x0)
 #define ParamTC				((unsigned int) 0x0)	// параметр для значения ТС
+#define ParamTI				((unsigned int) 0x0)	// параметр для значения ТI
 #define ParamMode			((unsigned int) 0x1)	// параметр для физической величины
 #define ParamTime			((unsigned int)	0x2)	// время измерений
 #define ParamMinD			((unsigned int)	0x3)	// минимум датчика 
