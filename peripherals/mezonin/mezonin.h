@@ -255,6 +255,7 @@ void Mez_NOT_init(void);
 
 void TCValueHandler (Mez_Value *Mez_V);
 void TTValueHandler (Mez_Value *Mez_V);
+void TIValueHandler (Mez_Value *Mez_V);
 
 uint32_t Get_TTParams(TT_Value *TT_temp);
 uint32_t Get_TTCoeffs(TT_Value *TT_temp);

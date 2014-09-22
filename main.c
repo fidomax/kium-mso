@@ -258,6 +258,13 @@ void CanHandler(void *p)
 
 				case priority_W:
 					switch (Type) {
+						case identifier_TI:
+							switch (Param) {
+								case 0:
+									Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Value = Recieve_Message.data_low_reg;
+									break;
+							}
+							break;
 						case identifier_TR:
 							switch (Param) {
 								case 0:
@@ -406,6 +413,13 @@ void CanHandler(void *p)
 //					FillCanPacket(&canTransfer1, canID, 3, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 
 					switch (Type) {
+						case identifier_TI:
+							switch(Param){
+								case 0:
+									Send_Message.data_low_reg = Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Value;
+									break;
+							}
+							break;
 						case identifier_TR:
 							switch(Param){
 								case 0:
@@ -670,7 +684,7 @@ void MezValue(void *p)
 						break;
 
 					case Mez_TI:
-
+						TIValueHandler(&Mez_V);
 						break;
 
 					case Mez_NOT:
