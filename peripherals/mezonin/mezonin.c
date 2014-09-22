@@ -107,6 +107,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez1->xSemaphore);
 	xSemaphoreTake(Mez1->xSemaphore, portMAX_DELAY);
 	Mez1->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez1->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 2
 //------------------------------------------------------------------------------
@@ -143,6 +144,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez2->xSemaphore);
 	xSemaphoreTake(Mez2->xSemaphore, portMAX_DELAY);
 	Mez2->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez2->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 3
 //------------------------------------------------------------------------------
@@ -179,6 +181,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez3->xSemaphore);
 	xSemaphoreTake(Mez3->xSemaphore, portMAX_DELAY);
 	Mez3->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez3->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 4
 //------------------------------------------------------------------------------
@@ -215,6 +218,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez4->xSemaphore);
 	xSemaphoreTake(Mez4->xSemaphore, portMAX_DELAY);
 	Mez4->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez4->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 }
 //------------------------------------------------------------------------------
 void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct)
