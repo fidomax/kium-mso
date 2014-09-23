@@ -282,14 +282,13 @@ void Mez_TU_init(mezonin *MezStruct)
 //------------------------------------------------------------------------------
 void Mez_TR_init(mezonin *MezStruct)
 {
-	uint32_t j;
 	uint32_t CS_configuration;
-	for (j = 0; j < 4; j++) {
-		Mezonin_TR[MezStruct->Mez_ID - 1].Channel.flDAC = 0;
-	}
-	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x10 << 8 | 0x1F << 24 | 0x1F << 16;
-	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID - 1, CS_configuration);
+	Mezonin_TR[MezStruct->Mez_ID - 1].Channel.flDAC = 0;
+	CS_configuration = AT91C_SPI_BITS_8  | 0xFF << 8  |  0<<24| 0<<16  | AT91C_SPI_NCPHA | AT91C_SPI_CSAAT;
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, CS_configuration);
 	prvSetupDAC(AT91C_BASE_SPI0,MezStruct->Mez_ID-1);
+	SetDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0xF000);
+	//ReadDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1);
 
 }
 //------------------------------------------------------------------------------
@@ -557,9 +556,7 @@ void Mez_TP_handler(mezonin *MezStruct)
 				usDAC=Mezonin_TR[Real_TR.ID].Channel.flDAC/20*65535;
 			}
 			SetDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, usDAC);
-		} else {
-
-
+			//ReadDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1);
 		}
 	}
 }

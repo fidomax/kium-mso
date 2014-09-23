@@ -210,19 +210,41 @@ unsigned char SPI_ReadBuffer(AT91S_SPI *spi, void *buffer, unsigned int length)
 void prvSetupDAC(AT91S_SPI *spi, unsigned int n)
 {
 	while ((spi->SPI_SR & AT91C_SPI_TXEMPTY) == 0);
-	spi->SPI_TDR = 0b01010101 | n << 16;//control register
+	spi->SPI_TDR = 0b01010101 | SPI_PCS(n);//control register
 	while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
-	spi->SPI_TDR = 0b10000 | n << 16;//output enable
+	spi->SPI_TDR = 0b10000 | SPI_PCS(n);//output enable
 	while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
-	spi->SPI_TDR = 0b110 | n << 16 | 1<<24;// от 0 до 20 mA
+	spi->SPI_TDR = 0b110 | SPI_PCS(n)| 1<<24;// от 0 до 20 mA
+
+}
+void ReadDAC(AT91S_SPI *spi, unsigned int n){
+	unsigned short t;
+	while ((spi->SPI_SR & AT91C_SPI_TXEMPTY) == 0);
+	spi->SPI_TDR = 0x02 | SPI_PCS(n);
+	t=SPI_Read(AT91C_BASE_SPI0);
+	while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
+	spi->SPI_TDR = 0x00 | SPI_PCS(n);
+	t=SPI_Read(AT91C_BASE_SPI0);
+	while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
+	spi->SPI_TDR = 0x01 | SPI_PCS(n)|1<<24;
+	t=SPI_Read(AT91C_BASE_SPI0);
+	while ((spi->SPI_SR & AT91C_SPI_TXEMPTY) == 0);
+	spi->SPI_TDR = 0x00 | SPI_PCS(n);
+	t=SPI_Read(AT91C_BASE_SPI0);
+	while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
+	spi->SPI_TDR = 0x00 | SPI_PCS(n);
+	t=SPI_Read(AT91C_BASE_SPI0);
+	while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
+	spi->SPI_TDR = 0x00 | SPI_PCS(n)|1<<24;
+	t=SPI_Read(AT91C_BASE_SPI0);
 }
 
 void SetDAC(AT91S_SPI *spi, unsigned int n, unsigned short data)
 {
 		    while ((spi->SPI_SR & AT91C_SPI_TXEMPTY) == 0);
-		    spi->SPI_TDR = 0b1 | n<<16;//data register
+		    spi->SPI_TDR = 0b1 | SPI_PCS(n);//data register
 		    while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
-		    spi->SPI_TDR = ((data >>8) & 0xFF) | n<<16;
+		    spi->SPI_TDR = ((data >>8) & 0xFF) | SPI_PCS(n);
 		    while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
-		    spi->SPI_TDR = (data & 0xFF) | n<<16 | 1<<24;
+		    spi->SPI_TDR = (data & 0xFF) | SPI_PCS(n) | 1<<24;
 }
