@@ -102,14 +102,9 @@
 #include "semphr.h"
 #include "queue.h"
 /* Demo application includes. */
-#include "partest.h"
+#include "ParTest/partest.h"
 #include "constant.h"
 
-#include "BlockQ.h"
-#include "blocktim.h"
-#include "flash.h"
-#include "QPeek.h"
-#include "dynamic.h"
 #include "peripherals/twi/twi.h"
 #include "peripherals/PCA9532/PCA9532.h"
 #include "peripherals/MSO_functions/MSO_functions.h"
@@ -132,8 +127,8 @@ extern void CAN1_ISR(void) __attribute__((naked));
 #define mainGEN_QUEUE_TASK_PRIORITY			( tskIDLE_PRIORITY ) 
 
 #define mainUIP_TASK_STACK_SIZE_MAX		( configMINIMAL_STACK_SIZE * 10 )
-#define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 5 )
-#define mainUIP_TASK_STACK_SIZE_MIN		( configMINIMAL_STACK_SIZE * 3 )
+#define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 2 )
+#define mainUIP_TASK_STACK_SIZE_MIN		( configMINIMAL_STACK_SIZE )
 
 volatile uint8_t MSO_Address;
 

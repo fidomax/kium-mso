@@ -51,10 +51,10 @@
 #    licensing and training services.
 #*/
 
-FREE_RTOS=/home/alex/Documents/FreeRTOSv8.0.1/FreeRTOS
+FREE_RTOS=FreeRTOS
 RTOS_SOURCE_DIR=$(FREE_RTOS)/Source
-DEMO_COMMON_DIR=$(FREE_RTOS)/Demo/Common/Minimal
-DEMO_INCLUDE_DIR=$(FREE_RTOS)/Demo/Common/include
+#DEMO_COMMON_DIR=$(FREE_RTOS)/Demo/Common/Minimal
+#DEMO_INCLUDE_DIR=$(FREE_RTOS)/Demo/Common/include
 
 OUTPUT = RTOS_Kernel
 
@@ -78,7 +78,7 @@ DEBUG=-g
 OPTIM=-O0
 
 
-VPATH +=$(RTOS_SOURCE_DIR) $(DEMO_COMMON_DIR) SrcAtmel ParTest ARM7_AT91SAM7A3 $(RTOS_SOURCE_DIR)/portable/MemMang boards peripherals/twi peripherals/spi peripherals/aic peripherals/pio peripherals/can peripherals/tc peripherals/pwmc peripherals/mezonin peripherals/pit utility peripherals/MSO_functions 
+VPATH +=$(RTOS_SOURCE_DIR) SrcAtmel ParTest ARM7_AT91SAM7A3 MemMang boards peripherals/twi peripherals/spi peripherals/aic peripherals/pio peripherals/can peripherals/tc peripherals/pwmc peripherals/mezonin peripherals/pit utility peripherals/MSO_functions 
 CFLAGS= $(DEBUG) \
 		$(OPTIM) \
 		-T$(LDSCRIPT) \
@@ -86,7 +86,6 @@ CFLAGS= $(DEBUG) \
 		-I $(RTOS_SOURCE_DIR)/include \
 		-I peripherals \
 		-I ARM7_AT91SAM7A3 \
-		-I $(DEMO_INCLUDE_DIR) \
 		-I ./SrcAtmel \
 		-D SAM7_GCC \
 		-D THUMB_INTERWORK \
@@ -104,13 +103,6 @@ CFLAGS= $(DEBUG) \
 THUMB_SOURCE= \
 		main.c \
 		ParTest.c \
-		BlockQ.c \
-		blocktim.c \
-		flash.c \
-		integer.c \
-		GenQTest.c \
-		QPeek.c \
-		dynamic.c \
 		list.c \
 		queue.c \
 		tasks.c \
@@ -129,6 +121,7 @@ THUMB_SOURCE= \
 		spi.c \
 		mezonin.c \
 		TI.c \
+		TU.c \
 		MSO_functions.c		
 
 ARM_SOURCE= \

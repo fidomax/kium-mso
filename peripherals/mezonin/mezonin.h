@@ -3,7 +3,10 @@
 #include "boards/MSO_board.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
-
+#include "queue.h"
+#include "mezcommon.h"
+#include "TU.h"
+#include "TI.h"
 //=====================количество мезонинов======================
 #define	  Mez_Count		 3 // Мезонины считаются с 0-го по 3-ий
 //=====================номера мезонинов======================
@@ -33,55 +36,23 @@
 #define mode_calib	((uint32_t)	0x06)	// режим работы калибровка
 //------------------------------------------------------------------------------
 //---------------определение типа для LinePIO------------------
-typedef struct _LinePIO
-{
-	AT91PS_PIO PIO_ctrl_ptr; //указатель на PIO controller (PIOA или PIOB); нужен для конфигурации линии MDATA
-	uint32_t PIO_Line;
 
-} LinePIO;
-//---------------определение типа для мезонинов (тип mezonin)------------------
-typedef struct _mezonin
-{
-	int32_t Mez_ID; // идентификатор мезонина: 1, 2, 3, или 4
-	uint8_t Mez_Type;	// тип мезонина
-	int8_t Mez_Mem_address; // адрес памяти мезонина
-	AT91PS_TC TC_ptr; // указатель на TC
-	uint32_t TC_ID; // идентификатор TC
-	uint32_t TC_mode; // конфигурация режима TC
-	AT91PS_TCB TC_blk_ptr; // указатель на блок, к которому относится TC
-	uint32_t TC_blk_mode; // конфигурация режима блока TC
-	void (*TC_ISR_ptr)(void); //указатель на функцию обработки прерывания TC
-	AT91PS_PWMC_CH PWM_ptr; // указатель на PWM
-	uint32_t PWM_ID; // идентификатор PWM
-	int32_t PWM_Number; // номер PWM: 0, 1, 2 или 3 (нужен для конфигурации PWM)
-	int32_t Periph_AB; // периферия А или В; нужно для конфигурации линии MDATA (все А, кроме MDATA_4)
-	LinePIO LineMDATA; // линия MDATA
-	LinePIO LineFIN; // линия FIN
-	LinePIO LineA0; // линия A0
-	LinePIO LineA1; // линия A1
-	LinePIO LineBRK; // линия BRK
-	LinePIO LineOVF; // линия OVF
-	uint32_t I2CCSE; // линия выбора памяти мезонина
-	uint32_t CS; // линия выбора по SPI
-	uint32_t Start;
-	uint32_t TickCount;
-	uint32_t ActiveChannel;
-	SemaphoreHandle_t xSemaphore;
-	QueueHandle_t TUQueue;
-	QueueHandle_t TPQueue;
-} mezonin;
+//------------------------------------------------------------------------------
+//         For Page Mezonin
+//------------------------------------------------------------------------------
+#define PageType	((uint32_t) 0)
+#define PageParam	((uint32_t) 1)
+#define PageCoeff	((uint32_t) 5)
+#define PageLevel	((uint32_t) 9)
 
-//---------------определение типа для физической величины ТТ ------------------
-typedef struct _Mez_Value
-{
-	union{
-		uint32_t ui32Value; // значение физической величины
-		float fValue; // значение физической величины
-	};
-	uint32_t Channel; // номер канала
-	int32_t ID; // номер мезонина
 
-} Mez_Value;
+#define TC_OFF      0
+#define TC_ON       1
+#define TC_OK		1
+#define TC_BRK		0
+#define Channel_OFF	4
+
+
 
 //==========================коэффициенты для вычисления ФВ =======================
 typedef struct _TT_Coeff
@@ -165,58 +136,9 @@ typedef struct _TC_Value
 	int32_t ID; // номер мезонина
 } TC_Value;
 
-//==========================парамеры канала, хранящиеся в EEPROM для ТI=======================
-typedef struct _TI_Param
-{
-	uint32_t Mode;	// режим работы
-	float Sense;  // Чувствительность
-	float CoeFf;	// Коэффициент
-	uint16_t CRC;	// контрольная сумма
-} TI_Param;
-//---------------структура канала ТU (тип mezonin)----------------------
-typedef struct _TI_Channel
-{
-	uint32_t Value; 		// счетчик ФВ
-	uint8_t State;  	// состояние
-	uint32_t CountTI;	// счетчик импульсов
-	TI_Param Params;		// параметры из EEPROM
-//  uint8_t			Mode;		// режим работы канала (On/Off)
-	// возможно будет дополняться
-} TI_Channel;
-//---------------определение типа для ТU (тип mezonin)------------------
-typedef struct _TI_Value
-{
-	TI_Channel Channel[4]; // номер канала
-	uint8_t PerTime;
-	int32_t ID; // номер мезонина
-} TI_Value;
 
-//==========================парамеры канала, хранящиеся в EEPROM для ТU=======================
-typedef struct _TU_Param
-{
-	uint32_t Mode;			// режим работы
-	uint8_t TimeTU;			// время выдержки ТУ
-	uint8_t NumberTC;		// ТС концевиков
-	uint8_t ExtraTimeTU;	// Дополнительное время выдержки ТУ
-	uint16_t CRC;			// контрольная сумма
-} TU_Param;
-//---------------структура канала ТC (тип mezonin)----------------------
-typedef struct _TU_Channel
-{
-	uint8_t State;  	// состояние
-	uint8_t Value; 		// значение канала (On или Off)
-	TU_Param Params;		// параметры из EEPROM
-//  uint8_t			Mode;		// режим работы канала (On/Off)
-	// возможно будет дополняться
-} TU_Channel;
-//---------------определение типа для ТU (тип mezonin)------------------
-typedef struct _TU_Value
-{
-	TU_Channel Channel[4]; // номер канала
-	uint8_t PerTime;
-	int32_t ID; // номер мезонина
-} TU_Value;
 //---------------структура канала ТP (тип mezonin)----------------------
+
 typedef struct _TR_Channel
 {
 	float flDAC; 			//ФВ
@@ -243,19 +165,17 @@ void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct);
 
 void Mez_TC_init(mezonin *MezStruct);
 
-void Mez_TU_init(mezonin *MezStruct);
+
 
 void Mez_TT_init(mezonin *MezStruct);
 
 void Mez_TR_init(mezonin *MezStruct);
 
-void Mez_TI_init(mezonin *MezStruct);
-
 void Mez_NOT_init(void);
 
 void TCValueHandler (Mez_Value *Mez_V);
 void TTValueHandler (Mez_Value *Mez_V);
-void TIValueHandler (Mez_Value *Mez_V);
+
 
 uint32_t Get_TTParams(TT_Value *TT_temp);
 uint32_t Get_TTCoeffs(TT_Value *TT_temp);
@@ -275,10 +195,6 @@ void WriteTTParams(uint8_t MezNum, int ChannelNumber, TT_Param* Params);
 void Mez_handler_select(int32_t Mezonin_Type, mezonin *MezStruct);
 
 void Mez_TC_handler(mezonin *MezStruct);
-
-void Mez_TU_handler(mezonin *MezStruct);
-
-void Mez_TI_handler(mezonin *MezStruct);
 
 void Mez_TP_handler(mezonin *MezStruct);
 
@@ -308,8 +224,14 @@ float Mez_TT_Frequency(uint32_t measured_value, uint32_t ChannelNumber, uint32_t
 //------------------------------------------------------------------------------
 void Mez_TP_handler(mezonin *MezStruct);
 
-void Mez_TI_handler(mezonin *MezStruct);
-
 void Mez_NOT_handler(void);
+
+extern TT_Value Mezonin_TT[4];
+extern TC_Value Mezonin_TC[4];
+extern TR_Value Mezonin_TR[4];
+extern QueueHandle_t xMezQueue;
+extern QueueHandle_t xMezTUQueue;
+
+
 #endif
 
