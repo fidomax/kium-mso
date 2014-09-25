@@ -107,6 +107,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez1->xSemaphore);
 	xSemaphoreTake(Mez1->xSemaphore, portMAX_DELAY);
 	Mez1->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez1->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 2
 //------------------------------------------------------------------------------
@@ -143,6 +144,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez2->xSemaphore);
 	xSemaphoreTake(Mez2->xSemaphore, portMAX_DELAY);
 	Mez2->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez2->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 3
 //------------------------------------------------------------------------------
@@ -179,6 +181,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez3->xSemaphore);
 	xSemaphoreTake(Mez3->xSemaphore, portMAX_DELAY);
 	Mez3->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez3->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 //------------------------------------------------------------------------------
 // мезонин 4
 //------------------------------------------------------------------------------
@@ -215,6 +218,7 @@ void Mez_PreInit(mezonin *Mez1, mezonin *Mez2, mezonin *Mez3, mezonin *Mez4)
 	vSemaphoreCreateBinary(Mez4->xSemaphore);
 	xSemaphoreTake(Mez4->xSemaphore, portMAX_DELAY);
 	Mez4->TUQueue = xQueueCreate(8, sizeof(Mez_Value));
+	Mez4->TPQueue = xQueueCreate(8, sizeof(Mez_Value));
 }
 //------------------------------------------------------------------------------
 void Mez_init(uint32_t Mezonin_Type, mezonin *MezStruct)
@@ -278,15 +282,22 @@ void Mez_TU_init(mezonin *MezStruct)
 //------------------------------------------------------------------------------
 void Mez_TR_init(mezonin *MezStruct)
 {
-	uint32_t j;
 	uint32_t CS_configuration;
-	for (j = 0; j < 4; j++) {
-		Mezonin_TR[MezStruct->Mez_ID - 1].Channel.flDAC = 0;
-	}
-	CS_configuration = AT91C_SPI_BITS_8 /*|AT91C_SPI_CPOL | AT91C_SPI_NCPHA*/ | 0x10 << 8 | 0x1F << 24 | 0x1F << 16;
-	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID - 1, CS_configuration);
-	prvSetupDAC(AT91C_BASE_SPI0,MezStruct->Mez_ID-1);
-
+	Mezonin_TR[MezStruct->Mez_ID - 1].Channel.flDAC = 0;
+	CS_configuration = AT91C_SPI_BITS_8  | 0x30 << 8  |  0<<24| 0<<16  | AT91C_SPI_NCPHA;
+	SPI_ConfigureNPCS(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, CS_configuration);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0b01010101);//control register
+	SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0b10000);//output enable
+	SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0b110);// от 0 до 20 mA
+	SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0b1);//data register
+	SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0);
+	SPI_Read(AT91C_BASE_SPI0);
+	SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0);
+	SPI_Read(AT91C_BASE_SPI0);
 }
 //------------------------------------------------------------------------------
 void Mez_TT_init(mezonin *MezStruct)
@@ -552,10 +563,12 @@ void Mez_TP_handler(mezonin *MezStruct)
 			} else{
 				usDAC=Mezonin_TR[Real_TR.ID].Channel.flDAC/20*65535;
 			}
-			SetDAC(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, usDAC);
-		} else {
-
-
+			SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, 0b1);//data register
+			SPI_Read(AT91C_BASE_SPI0);
+			SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, ((usDAC >>8) & 0xFF));
+			SPI_Read(AT91C_BASE_SPI0);
+			SPI_Write(AT91C_BASE_SPI0, MezStruct->Mez_ID-1, (usDAC & 0xFF));
+			SPI_Read(AT91C_BASE_SPI0);
 		}
 	}
 }

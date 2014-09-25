@@ -106,5 +106,6 @@ extern unsigned short SPI_Read(AT91S_SPI *spi);
 extern unsigned char SPI_ReadBuffer(AT91S_SPI *spi, void *buffer,
 		unsigned int length);
 extern void  prvSetupDAC(AT91S_SPI *spi, unsigned int n);
+extern void  ReadDAC(AT91S_SPI *spi, unsigned int n);
 extern void SetDAC(AT91S_SPI *spi, unsigned int n, unsigned short data);
 #endif //#ifndef SPI_H

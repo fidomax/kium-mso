@@ -51,7 +51,7 @@
 #    licensing and training services.
 #*/
 
-FREE_RTOS=/home/maximus/FreeRTOSv8.0.1/FreeRTOS
+FREE_RTOS=/home/alex/Documents/FreeRTOSv8.0.1/FreeRTOS
 RTOS_SOURCE_DIR=$(FREE_RTOS)/Source
 DEMO_COMMON_DIR=$(FREE_RTOS)/Demo/Common/Minimal
 DEMO_INCLUDE_DIR=$(FREE_RTOS)/Demo/Common/include

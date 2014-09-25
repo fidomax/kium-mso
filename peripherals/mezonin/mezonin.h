@@ -247,7 +247,7 @@ void Mez_TU_init(mezonin *MezStruct);
 
 void Mez_TT_init(mezonin *MezStruct);
 
-void Mez_TP_init(mezonin *MezStruct);
+void Mez_TR_init(mezonin *MezStruct);
 
 void Mez_TI_init(mezonin *MezStruct);
 
