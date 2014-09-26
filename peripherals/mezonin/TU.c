@@ -28,13 +28,17 @@ void Mez_TU_handler(mezonin *MezStruct)
 			if (xQueueReceive(MezStruct->TUQueue, &Real_TU, 1000)) {
 				Mezonin_TU[Real_TU.ID].Channel[Real_TU.Channel].Value = Real_TU.ui32Value;
 				MDATA[Real_TU.ID] = MakeTUValue(&Real_TU);		// пишем сразу в 4 канала
-
-				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
-				SPI_Read(AT91C_BASE_SPI0);
-				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
-				SPI_Read(AT91C_BASE_SPI0);
-				SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, MDATA[Real_TU.ID]);
-				SPI_Read(AT91C_BASE_SPI0);
+				if (xSPISemaphore != NULL) {
+					if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
+						SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
+						SPI_Read(AT91C_BASE_SPI0);
+						SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, 0x00);
+						SPI_Read(AT91C_BASE_SPI0);
+						SPI_Write(AT91C_BASE_SPI0, Real_TU.ID, MDATA[Real_TU.ID]);
+						SPI_Read(AT91C_BASE_SPI0);
+						xSemaphoreGive(xSPISemaphore);
+					}
+				}
 
 			} else {
 				// время выдержки

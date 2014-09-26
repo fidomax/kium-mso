@@ -9,13 +9,13 @@
 					<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.targetPlatform.gnu.cross.1108579798" isAbstract="false" osList="all" superClass="cdt.managedbuild.targetPlatform.gnu.cross"/>
 					<builder id="cdt.managedbuild.builder.gnu.cross.885701077" keepEnvironmentInBuildfile="false" managedBuildOn="false" name="Gnu Make Builder" superClass="cdt.managedbuild.builder.gnu.cross"/>
 					<tool id="cdt.managedbuild.tool.gnu.cross.c.compiler.615265610" name="Cross GCC Compiler" superClass="cdt.managedbuild.tool.gnu.cross.c.compiler">
-						<option id="gnu.c.compiler.option.include.paths.1644575980" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
+						<option id="gnu.c.compiler.option.include.paths.1644575980" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 							<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kium-mso/FreeRTOS.org Source}&quot;"/>
 						</option>
 						<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.793733932" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 					</tool>
 					<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.1331878057" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler">
-						<option id="gnu.cpp.compiler.option.include.paths.2010351066" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
+						<option id="gnu.cpp.compiler.option.include.paths.2010351066" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
 							<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kium-mso/FreeRTOS.org Source}&quot;"/>
 						</option>
 						<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.363806140" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
@@ -29,42 +29,13 @@
 					</tool>
 					<tool id="cdt.managedbuild.tool.gnu.cross.archiver.1513979997" name="Cross GCC Archiver" superClass="cdt.managedbuild.tool.gnu.cross.archiver"/>
 					<tool id="cdt.managedbuild.tool.gnu.cross.assembler.1840268451" name="Cross GCC Assembler" superClass="cdt.managedbuild.tool.gnu.cross.assembler">
-						<option id="gnu.both.asm.option.include.paths.154646192" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+						<option id="gnu.both.asm.option.include.paths.154646192" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
 							<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kium-mso/FreeRTOS.org Source}&quot;"/>
 						</option>
 						<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1065260107" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 					</tool>
 				</toolChain>
 			</folderInfo>
-			<folderInfo id="org.eclipse.cdt.cross.arm.gnu.sourcery.linux.toolchain.base.159077204.1445409758" name="/" resourcePath="FreeRTOS.org Source">
-				<toolChain id="cdt.managedbuild.toolchain.gnu.cross.base.1518525574" name="Cross GCC" superClass="cdt.managedbuild.toolchain.gnu.cross.base" unusedChildren="">
-					<option id="cdt.managedbuild.option.gnu.cross.prefix.589020990.1535519966" name="Prefix" superClass="cdt.managedbuild.option.gnu.cross.prefix.589020990"/>
-					<option id="cdt.managedbuild.option.gnu.cross.path.2087560605.1342223249" name="Path" superClass="cdt.managedbuild.option.gnu.cross.path.2087560605"/>
-					<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.ELF" id="cdt.managedbuild.targetPlatform.gnu.cross" isAbstract="false" osList="all" superClass="cdt.managedbuild.targetPlatform.gnu.cross"/>
-					<tool id="cdt.managedbuild.tool.gnu.cross.c.compiler.1464227724" name="Cross GCC Compiler" superClass="cdt.managedbuild.tool.gnu.cross.c.compiler.615265610">
-						<option id="gnu.c.compiler.option.include.paths.2059516539" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" valueType="includePath">
-							<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kium-mso/FreeRTOS.org Source}&quot;"/>
-						</option>
-						<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1427588234" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
-					</tool>
-					<tool id="cdt.managedbuild.tool.gnu.cross.cpp.compiler.807752283" name="Cross G++ Compiler" superClass="cdt.managedbuild.tool.gnu.cross.cpp.compiler.1331878057">
-						<option id="gnu.cpp.compiler.option.include.paths.1831734959" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" valueType="includePath">
-							<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kium-mso/FreeRTOS.org Source}&quot;"/>
-						</option>
-						<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1969240176" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
-					</tool>
-					<tool id="cdt.managedbuild.tool.gnu.cross.c.linker.348420494" name="Cross GCC Linker" superClass="cdt.managedbuild.tool.gnu.cross.c.linker.1292783262"/>
-					<tool id="cdt.managedbuild.tool.gnu.cross.cpp.linker.1485614331" name="Cross G++ Linker" superClass="cdt.managedbuild.tool.gnu.cross.cpp.linker.1100495032"/>
-					<tool id="cdt.managedbuild.tool.gnu.cross.archiver.1483025463" name="Cross GCC Archiver" superClass="cdt.managedbuild.tool.gnu.cross.archiver.1513979997"/>
-					<tool id="cdt.managedbuild.tool.gnu.cross.assembler.1980701890" name="Cross GCC Assembler" superClass="cdt.managedbuild.tool.gnu.cross.assembler.1840268451">
-						<option id="gnu.both.asm.option.include.paths.1452668015" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
-							<listOptionValue builtIn="false" value="&quot;${workspace_loc:/kium-mso/FreeRTOS.org Source}&quot;"/>
-						</option>
-						<inputType id="cdt.managedbuild.tool.gnu.assembler.input.311068179" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
-					</tool>
-				</toolChain>
-			</folderInfo>
-			<fileInfo id="org.eclipse.cdt.cross.arm.gnu.sourcery.linux.toolchain.base.159077204.297548279" name="FlashMB9A310.out" rcbsApplicability="disable" resourcePath="Common Demo Files/CORTEX_MB9A310_IAR_Keil/config/flashloader/FlashMB9A310.out" toolsToInvoke=""/>
 		</configuration>
 	</storageModule>
 </cproject>

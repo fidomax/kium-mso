@@ -231,6 +231,7 @@ extern TC_Value Mezonin_TC[4];
 extern TR_Value Mezonin_TR[4];
 extern QueueHandle_t xMezQueue;
 extern QueueHandle_t xMezTUQueue;
+extern SemaphoreHandle_t xSPISemaphore;
 
 
 #endif

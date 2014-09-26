@@ -88,18 +88,6 @@
 		<nature>org.eclipse.cdt.core.cnature</nature>
 		<nature>org.eclipse.cdt.core.ccnature</nature>
 	</natures>
-	<linkedResources>
-		<link>
-			<name>Common Demo Files</name>
-			<type>2</type>
-			<locationURI>FreeRTOS_ROOT/FreeRTOS/Demo</locationURI>
-		</link>
-		<link>
-			<name>FreeRTOS.org Source</name>
-			<type>2</type>
-			<locationURI>FreeRTOS_ROOT/FreeRTOS/Source</locationURI>
-		</link>
-	</linkedResources>
 	<variableList>
 		<variable>
 			<name>FreeRTOS_ROOT</name>

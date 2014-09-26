@@ -583,12 +583,7 @@ void Mez_TU_Task(void *p)
 
 	Mez_num = (int32_t) p;
 	for (;;) {
-		if (xSPISemaphore != NULL) {
-			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
-				Mez_TU_handler(&mezonin_my[Mez_num]);
-				xSemaphoreGive(xSPISemaphore);
-			}
-		}
+		Mez_TU_handler(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 }
@@ -616,12 +611,7 @@ void Mez_TP_Task(void *p)
 
 	Mez_num = (int32_t) p;
 	for (;;) {
-		if (xSPISemaphore != NULL) {
-			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
-				Mez_TP_handler(&mezonin_my[Mez_num]);
-				xSemaphoreGive(xSPISemaphore);
-			}
-		}
+		Mez_TP_handler(&mezonin_my[Mez_num]);
 		vTaskDelayUntil(&xLastWakeTime, xFrequency);
 	}
 
@@ -719,12 +709,9 @@ void MezRec(void *p) // распознование типа мезонина
 			}
 		}
 
-		if (xSPISemaphore != NULL) {
-			if (xSemaphoreTake( xSPISemaphore, portMAX_DELAY ) == pdTRUE) {
+
 				Mez_init(mezonin_my[i].Mez_Type, &mezonin_my[i]);
-				xSemaphoreGive(xSPISemaphore);
-			}
-		}
+
 
 		switch (i) {
 			case 0:

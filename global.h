@@ -9,4 +9,5 @@ extern QueueHandle_t xCanQueue;
 
 
 extern SemaphoreHandle_t xTWISemaphore;
+
 #endif
