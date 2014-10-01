@@ -114,7 +114,9 @@ typedef struct
 //------------------------------------------------------------------------------
 //         Exported functions
 //------------------------------------------------------------------------------
-extern unsigned char CAN_Init(unsigned int baudrate, unsigned int identifier);
+extern unsigned char CAN_Init(unsigned int baudrate);
+void InitCanRX(unsigned int identifier);
+void InitCanTX();
 
 void CAN_Handler(unsigned char);
 

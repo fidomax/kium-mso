@@ -410,12 +410,13 @@ unsigned char CAN_Write(Message *CanMessage)
 				mb_ptr->CAN_MB_MCR = (AT91C_CAN_MDLC & (0x8 << 16));
 				mb_ptr->CAN_MB_MID = CanMessage->real_Identifier;
 
-				base_can->CAN_TCR = 1 << num; //mask;
+				base_can->CAN_TCR = 1 << num; //mask;*/
 				num = 0;
 				break;
 			}
 
 		}
+
 		//if (num) vTaskDelay(1000);
 	}
 
@@ -545,9 +546,9 @@ unsigned char CAN_BaudRateCalculate(AT91PS_CAN base_CAN, unsigned int baudrate)
 /// \return return 1 if CAN has good baudrate and CAN is synchronized,
 ///         otherwise return 0
 //------------------------------------------------------------------------------
-unsigned char CAN_Init(unsigned int baudrate, unsigned int identifier)
+unsigned char CAN_Init(unsigned int baudrate)
 {
-	CanTransfer canTransfer;
+
 	int i;
 	
 	// CAN Transmit Serial Data
@@ -631,31 +632,43 @@ unsigned char CAN_Init(unsigned int baudrate, unsigned int identifier)
 //	AT91C_BASE_CAN1->CAN_MR = AT91C_CAN_CANEN;
 	CAN_Synchronisation(0);
 	CAN_Synchronisation(1);
-			canTransfer.acceptance_mask_reg = MaskAdress << PosAdress;
-			canTransfer.identifier = identifier;
-			canTransfer.data_low_reg = 0x00000000;
-			canTransfer.data_high_reg = 0x00000000;
-			canTransfer.control_reg = 0x00000000; // Mailbox Data Length Code
-			//Setup receiving MailBox by MSO address
-			for (i = 0; i < NB_RX_MB; i++) {
-				canTransfer.can_number = 0;
-				canTransfer.mailbox_number = i;
-				canTransfer.mode_reg = (i < (NB_RX_MB - 1)) ? AT91C_CAN_MOT_RX : AT91C_CAN_MOT_RXOVERWRITE;
-				CAN_InitMailboxRegisters(&canTransfer);
-				CAN_Read(&canTransfer);
-				canTransfer.can_number = 1;
-				CAN_InitMailboxRegisters(&canTransfer);
-				CAN_Read(&canTransfer);
-			}
-			canTransfer.mode_reg = AT91C_CAN_MOT_TX	| AT91C_CAN_PRIOR;
-			for (   ; i < NB_MB; i++){
-				canTransfer.can_number = 0;
-				canTransfer.mailbox_number = i;
-				CAN_InitMailboxRegisters(&canTransfer);
-				canTransfer.can_number = 1;
-				CAN_InitMailboxRegisters(&canTransfer);
-			}
 
 	return 0;
 }
-
+//------------------------------------------------------------------------------
+void InitCanRX(unsigned int identifier)
+{
+	uint32_t i;
+	CanTransfer canTransfer;
+	canTransfer.acceptance_mask_reg = MaskAdress << PosAdress;
+	canTransfer.identifier = identifier;
+	canTransfer.data_low_reg = 0x00000000;
+	canTransfer.data_high_reg = 0x00000000;
+	canTransfer.control_reg = 0x00000000; // Mailbox Data Length Code
+//Setup receiving MailBox by MSO address
+	for (i = 0; i < NB_RX_MB; i++) {
+		canTransfer.can_number = 0;
+		canTransfer.mailbox_number = i;
+		canTransfer.mode_reg = (i < (NB_RX_MB - 1)) ? AT91C_CAN_MOT_RX : AT91C_CAN_MOT_RXOVERWRITE;
+		CAN_InitMailboxRegisters(&canTransfer);
+		CAN_Read(&canTransfer);
+		canTransfer.can_number = 1;
+		CAN_InitMailboxRegisters(&canTransfer);
+		CAN_Read(&canTransfer);
+	}
+}
+//------------------------------------------------------------------------------
+void InitCanTX()
+{
+	uint32_t i;
+	CanTransfer canTransfer;
+	canTransfer.mode_reg = AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR;
+	for (i = NB_RX_MB; i < NB_MB; i++) {
+		canTransfer.can_number = 0;
+		canTransfer.mailbox_number = i;
+		CAN_InitMailboxRegisters(&canTransfer);
+		canTransfer.can_number = 1;
+		CAN_InitMailboxRegisters(&canTransfer);
+	}
+}
+//------------------------------------------------------------------------------

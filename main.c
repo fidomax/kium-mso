@@ -127,7 +127,7 @@ extern void CAN1_ISR(void) __attribute__((naked));
 #define mainGEN_QUEUE_TASK_PRIORITY			( tskIDLE_PRIORITY ) 
 
 #define mainUIP_TASK_STACK_SIZE_MAX		( configMINIMAL_STACK_SIZE * 10 )
-#define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 2 )
+#define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 3 )
 #define mainUIP_TASK_STACK_SIZE_MIN		( configMINIMAL_STACK_SIZE )
 
 volatile uint8_t MSO_Address;
@@ -188,20 +188,6 @@ void PCA9532_init(void)
 
 }
 //------------------------------------------//*//------------------------------------------------
-void SendCanMessage(uint32_t id, uint32_t data_l, uint32_t data_h)
-{
-	Message Send_Message;
-	Send_Message.real_Identifier = id;
-
-	Send_Message.data_low_reg = data_l;
-	Send_Message.data_high_reg = data_h;
-	Send_Message.canID = 0;
-
-	CAN_Write(&Send_Message);
-	Send_Message.canID = 1;
-	CAN_Write(&Send_Message);
-}
-//------------------------------------------//*//------------------------------------------------
 void CanHandler(void *p)
 {
 	TickType_t xLastWakeTime;
@@ -213,8 +199,8 @@ void CanHandler(void *p)
 
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
-	CAN_Init(1000, AT91C_CAN_MIDE | MSO_Address << PosAdress);
-
+//	CAN_Init(1000, AT91C_CAN_MIDE | MSO_Address << PosAdress);
+	InitCanRX(AT91C_CAN_MIDE | MSO_Address << PosAdress);
 	//Setup receiving MailBox by MSO address
 //	identifier = AT91C_CAN_MIDE | MSO_Address << PosAdress;
 	for (;;) {
@@ -231,7 +217,7 @@ void CanHandler(void *p)
 			switch (Priority) {
 				case priority_V:
 
-					Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = mode_calib;
+//					Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = mode_calib;
 					switch (Param) {
 						case ParamCalib0:
 							Mez_TT_Calib(&mezonin_my[Channel_Num / 4], Channel_Num % 4, 1);
@@ -241,11 +227,11 @@ void CanHandler(void *p)
 							break;
 						case ParamWrite:
 							Mez_TT_Calib(&mezonin_my[Channel_Num / 4], Channel_Num % 4, 3);
-							Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = mode_ok;
+//							Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = mode_ok;
 							break;
 						case ParamCalibEnd:
 							Mez_TT_Calib(&mezonin_my[Channel_Num / 4], Channel_Num % 4, 4);
-							Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = mode_ok;
+//							Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = mode_ok;
 							break;
 					}
 
@@ -644,7 +630,7 @@ void MezValue(void *p)
 {
 
 	Mez_Value Mez_V;
-
+	InitCanTX();
 
 
 	for (;;) {
@@ -812,8 +798,9 @@ void MezRec(void *p) // распознование типа мезонина
 			xSemaphoreGive(xTWISemaphore);
 		}
 	}
-
+//	xTaskCreate(MezValue, "Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
 	xTaskCreate(CanHandler, "CanHandler", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
+
 	vTaskDelete(*((TaskHandle_t *) p));
 }
 void MezSetDefaultConfig(void * p)
@@ -883,9 +870,11 @@ int main(void)
 	xCanQueue = xQueueCreate(64, sizeof(Message));
 	xMezQueue = xQueueCreate(32, sizeof(Mez_Value));
 	xMezTUQueue = xQueueCreate(16, sizeof(Mez_Value));
+	CAN_Init(1000);
 	switch (Switch2_Read()) {
 		case MSO_MODE_WORK:
 			Freq = 1000;
+			//CAN_Init(1000, AT91C_CAN_MIDE | MSO_Address << PosAdress);
 			xTaskCreate(LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);
 			xTaskCreate(MezRec, "Recognition", mainUIP_TASK_STACK_SIZE_MED, &xMezHandle, mainUIP_PRIORITY, &xMezHandle);
 			xTaskCreate(MezValue, "Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);

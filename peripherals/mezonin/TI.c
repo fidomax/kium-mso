@@ -66,7 +66,7 @@ void TIValueHandler (Mez_Value *Mez_V)
 	if (Mez_V->ui32Value ) { // если есть импульсы
 
 		ti_channel->CountTI += Mez_V->ui32Value;
-		SendCanMessage(ID, ti_channel->CountTI);
+//		SendCanMessage(ID, ti_channel->CountTI);
 	}
 
 

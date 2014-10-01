@@ -85,14 +85,14 @@ int Led2_Read(unsigned char *HL6_5);
 //------------------------------------------------------------------------------
 // коды ошибок
 //------------------------------------------------------------------------------
-#define    TWI_ERROR_NO_ERRORS             ((int)     1) // операция прошла успешно, ошибок нет
-#define    TWI_ERROR_NO_CODE               ((int)     0) // операция не завершена
-#define    TWI_ERROR_MEZ_NUM               ((int)    -1) // неверно указан номер мезонина
-#define    TWI_ERROR_START_ADDRESS         ((int)    -2) // неверно указан начальный адрес памяти
-#define    TWI_ERROR_NUMBER_OF_BYTES       ((int)    -3) // неверно указано количество байт для операции
-#define    TWI_ERROR_PAGE_NUMBER           ((int)    -4) // неверно указан номер страницы памяти
-#define    TWI_ERROR_CELL_NUMBER           ((int)    -5) // неверно указан номер ячейки памяти в странице
-#define    TWI_ERROR_NO_DEVICE_ACK         ((int)    -6) // от устройства нет подтверждения: либо контакт пропадает,
+#define    TWI_ERROR_NO_ERRORS             ((int32_t)     1) // операция прошла успешно, ошибок нет
+#define    TWI_ERROR_NO_CODE               ((int32_t)     0) // операция не завершена
+#define    TWI_ERROR_MEZ_NUM               ((int32_t)    -1) // неверно указан номер мезонина
+#define    TWI_ERROR_START_ADDRESS         ((int32_t)    -2) // неверно указан начальный адрес памяти
+#define    TWI_ERROR_NUMBER_OF_BYTES       ((int32_t)    -3) // неверно указано количество байт для операции
+#define    TWI_ERROR_PAGE_NUMBER           ((int32_t)    -4) // неверно указан номер страницы памяти
+#define    TWI_ERROR_CELL_NUMBER           ((int32_t)    -5) // неверно указан номер ячейки памяти в странице
+#define    TWI_ERROR_NO_DEVICE_ACK         ((int32_t)    -6) // от устройства нет подтверждения: либо контакт пропадает,
 // либо устройство не активировано, либо устройства вообще нет
 
 #define    TWI_WRITE            ((unsigned char)      0) // операция записи
