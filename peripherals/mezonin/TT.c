@@ -157,7 +157,7 @@ void MeasureTT(mezonin *MezStruct)
 	while ((MezStruct->TC_ptr->TC_SR & AT91C_TC_CLKSTA) != AT91C_TC_CLKSTA)
 		;
 	MezStruct->Start = 1;
-	MezStruct->TickCount = Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.MeasTime;
+	MezStruct->TickCount = Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.MeasTime + 1;
 
 
 	xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
@@ -178,6 +178,12 @@ void MeasureTT(mezonin *MezStruct)
 	}
 }
 //------------------------------------------------------------------------------
+void SetTTTime(TT_Channel *Channel)
+{
+	Channel->Min_Value = Channel->Coeffs.k_min * Channel->Params.MeasTime + Channel->Coeffs.p_min;
+	Channel->Max_Value = Channel->Coeffs.k_max * Channel->Params.MeasTime + Channel->Coeffs.p_max;
+}
+//------------------------------------------------------------------------------
 void CalibTTMin(mezonin *MezStruct)
 {
 	TT_Channel * Channel;
@@ -189,7 +195,7 @@ void CalibTTMin(mezonin *MezStruct)
 	while ((MezStruct->TC_ptr->TC_SR & AT91C_TC_CLKSTA) != AT91C_TC_CLKSTA)
 		;
 	MezStruct->Start = 1;
-	MezStruct->TickCount = 20;
+	MezStruct->TickCount = 20 + 1;
 	xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
 	TC_Stop(MezStruct->TC_ptr); //остановка счетчика TC1 (2MDATA)
 	Channel->CalibMin20 = MezStruct->TC_ptr->TC_CV + 65536 * overflow[MezStruct->Mez_ID - 1]; //сохранение значения счетчика
@@ -200,7 +206,7 @@ void CalibTTMin(mezonin *MezStruct)
 	while ((MezStruct->TC_ptr->TC_SR & AT91C_TC_CLKSTA) != AT91C_TC_CLKSTA)
 		;
 	MezStruct->Start = 1;
-	MezStruct->TickCount = 100;
+	MezStruct->TickCount = 100 + 1;
 	xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
 	TC_Stop(MezStruct->TC_ptr); //остановка счетчика TC1 (2MDATA)
 	Channel->CalibMin100 = MezStruct->TC_ptr->TC_CV + 65536 * overflow[MezStruct->Mez_ID - 1]; //сохранение значения счетчика
@@ -218,7 +224,7 @@ void CalibTTMax(mezonin * MezStruct)
 	while ((MezStruct->TC_ptr->TC_SR & AT91C_TC_CLKSTA) != AT91C_TC_CLKSTA)
 		;
 	MezStruct->Start = 1;
-	MezStruct->TickCount = 20;
+	MezStruct->TickCount = 20 + 1;
 	xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
 	TC_Stop(MezStruct->TC_ptr); //остановка счетчика TC1 (2MDATA)
 	Channel->CalibMax20 = MezStruct->TC_ptr->TC_CV + 65536 * overflow[MezStruct->Mez_ID - 1]; //сохранение значения счетчика
@@ -229,7 +235,7 @@ void CalibTTMax(mezonin * MezStruct)
 	while ((MezStruct->TC_ptr->TC_SR & AT91C_TC_CLKSTA) != AT91C_TC_CLKSTA)
 		;
 	MezStruct->Start = 1;
-	MezStruct->TickCount = 100;
+	MezStruct->TickCount = 100 + 1;
 	xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
 	TC_Stop(MezStruct->TC_ptr); //остановка счетчика TC1 (2MDATA)
 	Channel->CalibMax100 = MezStruct->TC_ptr->TC_CV + 65536 * overflow[MezStruct->Mez_ID - 1]; //сохранение значения счетчика
@@ -245,8 +251,7 @@ void CalibTTSave(mezonin *MezStruct)
 	Channel->Coeffs.p_min = Channel->CalibMin100 - Channel->Coeffs.k_min * 100;
 	Channel->Coeffs.p_max = Channel->CalibMax100 - Channel->Coeffs.k_max * 100;
 
-	Channel->Min_Value = Channel->Coeffs.k_min * Channel->Params.MeasTime + Channel->Coeffs.p_min;
-	Channel->Max_Value = Channel->Coeffs.k_max * Channel->Params.MeasTime + Channel->Coeffs.p_max;
+	SetTTTime(Channel);
 
 	Channel->Coeffs.CRC = Crc16((uint8_t *) &(Channel->Coeffs), sizeof(TT_Coeff) - sizeof(uint16_t) - 2);
 
@@ -398,8 +403,7 @@ uint32_t Get_TTCoeffs(TT_Value *TT_temp)
 		temp_CRC = Crc16(DataRecieve, offsetof(TT_Coeff, CRC)); //TODO fix TT_Coeff size possibly works
 		if (temp_CRC == ((TT_Coeff *) DataRecieve)->CRC) {
 			TT_temp->Channel[i].Coeffs = *(TT_Coeff *) DataRecieve;
-			TT_temp->Channel[i].Min_Value = TT_temp->Channel[i].Coeffs.k_min * TT_temp->Channel[i].Params.MeasTime + TT_temp->Channel[i].Coeffs.p_min;
-			TT_temp->Channel[i].Max_Value = TT_temp->Channel[i].Coeffs.k_max * TT_temp->Channel[i].Params.MeasTime + TT_temp->Channel[i].Coeffs.p_max;
+			SetTTTime(&TT_temp->Channel[i]);
 		} else {
 			return 1;
 		}

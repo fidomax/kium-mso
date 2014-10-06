@@ -348,6 +348,7 @@ void CanHandler(void *p)
 									break;
 								case ParamTime:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MeasTime = Recieve_Message.data_low_reg;
+									SetTTTime(&(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4]));
 									break;
 								case ParamMinD:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MinD = *((float *) &(Recieve_Message.data_low_reg));
