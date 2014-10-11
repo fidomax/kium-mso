@@ -263,8 +263,6 @@ void CanHandler(void *p)
 						case identifier_TU:
 							switch (Param) {
 								case 0:
-									break;
-								case 1:
 									test23.ID = Channel_Num / 4;
 									test23.Channel = Channel_Num % 4;
 									test23.ui32Value = Recieve_Message.data_low_reg;
@@ -276,6 +274,14 @@ void CanHandler(void *p)
 									break;
 							}
 							break;
+							case identifier_ParamTU:
+								switch (Param){
+									case 2:
+										Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.TimeTU = Recieve_Message.data_low_reg;
+										Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16((uint8_t *) &(Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params), offsetof(TU_Param, CRC));
+										WriteTUParams(Channel_Num / 4, Channel_Num % 4, &Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params);
+								}
+								break;
 
 						case identifier_Level:
 							switch (Param) {
@@ -826,6 +832,12 @@ void MezSetDefaultConfig(void * p)
 			Set_TCDefaultParams(2);
 			Set_TCDefaultParams(3);
 			break;
+		case Mez_TU:
+			Set_TUDefaultParams(0);
+			Set_TUDefaultParams(1);
+			Set_TUDefaultParams(2);
+			Set_TUDefaultParams(3);
+			break;
 		case Mez_TT:
 			Set_TTDefaultParams(0);
 			Set_TTDefaultParams(1);
@@ -839,20 +851,15 @@ void MezSetDefaultConfig(void * p)
 //------------------------------------------//*//------------------------------------------------
 void prvSetupSPIMaster (AT91S_SPI *spi)
 {
-	uint32_t SPI0_configuration, CS_configuration;
+	uint32_t SPI0_configuration;
 
 	AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, LED_0);
 
 	SPI_Pin_config();
 
-	CS_configuration = AT91C_SPI_BITS_8 | AT91C_SPI_NCPHA | 0x30 << 8;
 
 	SPI0_configuration = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS | AT91C_SPI_PS_VARIABLE | 0x00 << 16;
 	SPI_Configure(AT91C_BASE_SPI0, AT91C_ID_SPI0, SPI0_configuration);
-	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 0, CS_configuration);
-	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 1, CS_configuration);
-	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 2, CS_configuration);
-	SPI_ConfigureNPCS(AT91C_BASE_SPI0, 3, CS_configuration);
 
 	SPI_Enable(AT91C_BASE_SPI0);
 }
@@ -955,5 +962,6 @@ static void prvSetupHardware(void)
 void vApplicationTickHook(void)
 {
 	TTTickHandler();
+	TUTickHandler();
 }
 

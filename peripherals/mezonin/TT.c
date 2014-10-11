@@ -159,6 +159,7 @@ void MeasureTT(mezonin *MezStruct)
 	MezStruct->Start = 1;
 	MezStruct->TickCount = Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.MeasTime + 1;
 
+	SaveTTConfig(MezStruct->Mez_ID - 1,MezStruct->ActiveChannel - 1);
 
 	xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
 	TC_Stop(MezStruct->TC_ptr); //остановка счетчика TC1 (2MDATA)
@@ -438,7 +439,7 @@ void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs)
 		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 			int a;
 			a = MEZ_memory_Write(MezNum, ChannelNumber + PageCoeff, 0x00, sizeof(TT_Coeff), (uint8_t *) Coeffs);
-			vTaskDelay(100);
+			vTaskDelay(10);
 			/*				if (a == -6) {
 			 a = MEZ_memory_Write(0, Channel_Num + PageCoeff, 0x00, sizeof(TT_Coeff),
 			 (unsigned char *) &Mezonin_TT[0].Channel[Channel_Num].Coeffs);
@@ -455,7 +456,7 @@ void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels)
 		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 			int a;
 			a = MEZ_memory_Write(MezNum, ChannelNumber + PageLevel, 0x00, sizeof(TT_Level), (uint8_t *) Levels);
-			vTaskDelay(100);
+			vTaskDelay(10);
 			xSemaphoreGive(xTWISemaphore);
 		}
 	}
@@ -467,9 +468,35 @@ void WriteTTParams(uint8_t MezNum, int ChannelNumber, TT_Param* Params)
 		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 			int a;
 			a = MEZ_memory_Write(MezNum, ChannelNumber + PageParam, 0x00, sizeof(TT_Param), (uint8_t *) Params);
-			vTaskDelay(100);
+			vTaskDelay(10);
 			xSemaphoreGive(xTWISemaphore);
 		}
+	}
+}
+//------------------------------------------------------------------------------
+void SaveTTConfig(uint8_t MezNum, int ChannelNumber)
+{
+//	TT_Coeff * Coeffs;
+	TT_Level * Levels;
+	TT_Param * Params;
+	uint16_t CRC;
+//	Coeffs = &Mezonin_TT[MezNum].Channel[ChannelNumber].Coeffs;
+	Levels = &Mezonin_TT[MezNum].Channel[ChannelNumber].Levels;
+	Params = &Mezonin_TT[MezNum].Channel[ChannelNumber].Params;
+/*	CRC = Crc16((uint8_t *) (Coeffs), offsetof(TT_Coeff, CRC));
+	if (Coeffs->CRC != CRC){
+		Coeffs->CRC = CRC;
+		WriteTTCoeffs(MezNum, ChannelNumber, Coeffs);
+	}*/
+	CRC = Crc16((uint8_t *) (Levels), offsetof(TT_Level, CRC));
+	if (Levels->CRC != CRC){
+		Levels->CRC = CRC;
+		WriteTTLevels(MezNum, ChannelNumber, Levels);
+	}
+	CRC = Crc16((uint8_t *) (Params), offsetof(TT_Param, CRC));
+	if (Params->CRC != CRC){
+		Params->CRC = CRC;
+		WriteTTParams(MezNum, ChannelNumber, Params);
 	}
 }
 //------------------------------------------------------------------------------
@@ -484,10 +511,10 @@ void Set_TTDefaultParams(uint8_t MezNum)
 		Levels = &Mezonin_TT[MezNum].Channel[i].Levels;
 		Params = &Mezonin_TT[MezNum].Channel[i].Params;
 
-		Coeffs->k_max = 1500;
-		Coeffs->k_min = 233;
-		Coeffs->p_max = -1500;
-		Coeffs->p_min = -233;
+		Coeffs->k_max = 1511;
+		Coeffs->k_min = 249;
+		Coeffs->p_max = 5.75;
+		Coeffs->p_min = 0.25;
 
 		Coeffs->CRC = Crc16((uint8_t *) (Coeffs), offsetof(TT_Coeff, CRC)); //TODO fix TT_Coeff size  possibly works
 

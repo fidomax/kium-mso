@@ -80,6 +80,7 @@ uint32_t Get_TTCoeffs(TT_Value *TT_temp);
 uint32_t Get_TTLevels(TT_Value *TT_temp);
 void Set_TTDefaultParams(uint8_t MezNum);
 void SetTTTime(TT_Channel *Channel);
+void SaveTTConfig(uint8_t MezNum, int ChannelNumber);
 
 void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs);
 void WriteTTLevels(uint8_t MezNum, int ChannelNumber, TT_Level* Levels);

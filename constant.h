@@ -18,6 +18,7 @@
 #define identifier_Coeff 	((unsigned int) 16)
 #define identifier_ParamTT 	((unsigned int) 17)
 #define identifier_ParamTC	((unsigned int) 18)
+#define identifier_ParamTU	((unsigned int) 19)
 #define identifier_ParamMEZ ((unsigned int) 255)
 //------------------------------------------------------------------------------
 //		   Базовый приоритет
@@ -33,6 +34,7 @@
 #define ParamWrite			((unsigned int)	0x0)
 #define ParamTC				((unsigned int) 0x0)	// параметр для значения ТС
 #define ParamTI				((unsigned int) 0x0)	// параметр для значения ТI
+#define ParamTU				((unsigned int) 0x0)	// параметр для значения ТU
 #define ParamMode			((unsigned int) 0x1)	// параметр для физической величины
 #define ParamTime			((unsigned int)	0x2)	// время измерений
 #define ParamMinD			((unsigned int)	0x3)	// минимум датчика 
