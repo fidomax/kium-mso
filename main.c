@@ -238,6 +238,8 @@ void CanHandler(void *p)
 					break;
 
 				case priority_W:
+					Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress
+							| Channel_Num << PosChannel | Param;
 					switch (Type) {
 						case identifier_TI:
 							switch (Param) {
@@ -274,19 +276,25 @@ void CanHandler(void *p)
 									break;
 							}
 							break;
-							case identifier_ParamTU:
-								switch (Param){
-									case 2:
-										Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.TimeTU = Recieve_Message.data_low_reg;
-										Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16((uint8_t *) &(Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params), offsetof(TU_Param, CRC));
-										WriteTUParams(Channel_Num / 4, Channel_Num % 4, &Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params);
-								}
-								break;
+						case identifier_ParamTU:
+							switch (Param) {
+								case 2:
+									Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.TimeTU = Recieve_Message.data_low_reg;
+									Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16(
+											(uint8_t *) &(Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params), offsetof(TU_Param, CRC));
+									Send_Message.data_low_reg = Recieve_Message.data_low_reg;
+									Send_Message.data_high_reg = 0;
+									CAN_Write(&Send_Message);
+
+									WriteTUParams(Channel_Num / 4, Channel_Num % 4, &Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params);
+							}
+							break;
 
 						case identifier_Level:
 							switch (Param) {
 								case ParamWrite: {
-									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.CRC = Crc16((uint8_t *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels), offsetof(TT_Level, CRC));
+									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.CRC = Crc16(
+											(uint8_t *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels), offsetof(TT_Level, CRC));
 
 									WriteTTLevels(Channel_Num / 4, Channel_Num % 4, &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels);
 								}
@@ -344,7 +352,8 @@ void CanHandler(void *p)
 						case identifier_ParamTT:
 							switch (Param) {
 								case ParamWrite: {
-									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16((uint8_t *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params), offsetof(TT_Param, CRC));
+									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16(
+											(uint8_t *) &(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params), offsetof(TT_Param, CRC));
 									WriteTTParams(Channel_Num / 4, Channel_Num % 4, &Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params);
 
 								}
@@ -402,7 +411,7 @@ void CanHandler(void *p)
 
 					switch (Type) {
 						case identifier_TI:
-							switch(Param){
+							switch (Param) {
 								case 0:
 									Send_Message.data_low_reg = Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].CountTI;
 									Send_Message.data_high_reg = 0;
@@ -410,7 +419,7 @@ void CanHandler(void *p)
 							}
 							break;
 						case identifier_TR:
-							switch(Param){
+							switch (Param) {
 								case 0:
 									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TR[Channel_Num / 4].Channel.flDAC;
 
@@ -426,6 +435,15 @@ void CanHandler(void *p)
 							}
 
 							break;
+						case identifier_TU:
+							switch (Param) {
+								case ParamTU:
+									Send_Message.data_low_reg = Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Value;
+									Send_Message.data_high_reg = 0;
+									break;
+							}
+
+							break;
 						case identifier_TC:
 							switch (Param) {
 								case ParamTC:
@@ -435,7 +453,14 @@ void CanHandler(void *p)
 							}
 
 							break;
-
+						case identifier_ParamTU:
+							switch (Param) {
+								case ParamTime:
+									*((uint32_t *) &(Send_Message.data_low_reg)) = Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.TimeTU;
+									Send_Message.data_high_reg = 0;
+									break;
+							}
+							break;
 						case identifier_ParamTT:
 							switch (Param) {
 								case ParamMode:
@@ -639,7 +664,6 @@ void MezValue(void *p)
 	Mez_Value Mez_V;
 	InitCanTX();
 
-
 	for (;;) {
 		if (xMezQueue != 0) {
 			if (xQueueReceive(xMezQueue, &Mez_V, portMAX_DELAY)) {
@@ -702,9 +726,7 @@ void MezRec(void *p) // распознование типа мезонина
 			}
 		}
 
-
-				Mez_init(mezonin_my[i].Mez_Type, &mezonin_my[i]);
-
+		Mez_init(mezonin_my[i].Mez_Type, &mezonin_my[i]);
 
 		switch (i) {
 			case 0:
@@ -849,14 +871,13 @@ void MezSetDefaultConfig(void * p)
 	vTaskDelete(*((TaskHandle_t *) p));
 }
 //------------------------------------------//*//------------------------------------------------
-void prvSetupSPIMaster (AT91S_SPI *spi)
+void prvSetupSPIMaster(AT91S_SPI *spi)
 {
 	uint32_t SPI0_configuration;
 
 	AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, LED_0);
 
 	SPI_Pin_config();
-
 
 	SPI0_configuration = AT91C_SPI_MSTR | AT91C_SPI_MODFDIS | AT91C_SPI_PS_VARIABLE | 0x00 << 16;
 	SPI_Configure(AT91C_BASE_SPI0, AT91C_ID_SPI0, SPI0_configuration);
