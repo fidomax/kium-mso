@@ -83,6 +83,6 @@
 #define STATE_MASK		0x09
 #define STATE_FAULT		0x0A
 #define STATE_ERROR		0x0B
+#define STATE_WARNING	0x0D
+#define STATE_ALARM		0x0E
 #define STATE_UNDEF		0x0F
-#define STATE_WARNING	0x10
-#define STATE_ALARM		0x11

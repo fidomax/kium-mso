@@ -277,22 +277,28 @@ void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
 	if (MezStruct->ActiveChannel == 5) {
 		MezStruct->ActiveChannel = 1;
 	}
-
-	switch (Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode) {
+	TT_Channel * tt_channel = &Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1];
+	switch (tt_channel->Params.Mode) {
 		case TT_mode_ok:
 			MeasureTT(MezStruct);
 			break;
 		case TT_mode_calib0:
 			CalibTTMin(MezStruct);
-			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode = TT_mode_idle;
+			tt_channel->Params.Mode = TT_mode_idle;
 			break;
 		case TT_mode_calib20:
 			CalibTTMax(MezStruct);
-			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode = TT_mode_idle;
+			tt_channel->Params.Mode = TT_mode_idle;
 			break;
 		case TT_mode_calibSave:
 			CalibTTSave(MezStruct);
-			Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.Mode = TT_mode_ok;
+			tt_channel->Params.Mode = TT_mode_ok;
+			break;
+		case TT_mode_mask:
+			if (tt_channel->State != STATE_MASK) {
+				tt_channel->State = STATE_MASK; // выключен
+				SendCanMessage(MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, (MezStruct->Mez_ID - 1)*4 + MezStruct->ActiveChannel -1 , ParamFV), *((uint32_t *) &tt_channel->Value), tt_channel->State);
+			}
 			break;
 	}
 }
@@ -364,7 +370,7 @@ void Mez_TT_Calib(mezonin *MezStruct, uint32_t Channel_Num, uint32_t flag/*, TT_
 uint32_t Get_TTLevels(TT_Value *TT_temp)
 {
 	uint32_t i, a;
-	uint8_t DataRecieve[40];	// ИСПРАВИТЬ!!!!!!!
+	uint8_t DataRecieve[ sizeof(TT_Level)];
 	uint16_t temp_CRC;
 
 	for (i = 0; i < 4; i++) {
@@ -393,7 +399,7 @@ uint32_t Get_TTLevels(TT_Value *TT_temp)
 uint32_t Get_TTCoeffs(TT_Value *TT_temp)
 {
 	uint32_t i, a/*,test*/;
-	uint8_t DataRecieve[36];	// ИСПРАВИТЬ!!!!!!!
+	uint8_t DataRecieve[sizeof(TT_Coeff)];
 	uint16_t temp_CRC;
 	for (i = 0; i < 4; i++) {
 		TT_temp->Channel[i].Coeffs.k_max = 0;
@@ -417,7 +423,7 @@ uint32_t Get_TTCoeffs(TT_Value *TT_temp)
 uint32_t Get_TTParams(TT_Value *TT_temp)
 {
 	uint32_t i, a;
-	uint8_t DataRecieve[sizeof(TT_Param)];	// ИСПРАВИТЬ!!!!!!!
+	uint8_t DataRecieve[sizeof(TT_Param)];
 	uint16_t temp_CRC;
 	for (i = 0; i < 4; i++) {
 		TT_temp->Channel[i].Levels.Sense = 1.0;
@@ -516,7 +522,7 @@ void Set_TTDefaultParams(uint8_t MezNum)
 		Coeffs->p_max = 5.75;
 		Coeffs->p_min = 0.25;
 
-		Coeffs->CRC = Crc16((uint8_t *) (Coeffs), offsetof(TT_Coeff, CRC)); //TODO fix TT_Coeff size  possibly works
+		Coeffs->CRC = Crc16((uint8_t *) (Coeffs), offsetof(TT_Coeff, CRC));
 
 		Levels->Min_W_Level = 20;
 		Levels->Max_W_Level = 40;
@@ -524,7 +530,7 @@ void Set_TTDefaultParams(uint8_t MezNum)
 		Levels->Max_A_Level = 45;
 		Levels->Sense = 1;
 
-		Levels->CRC = Crc16((uint8_t *) (Levels), offsetof(TT_Level, CRC)); //TODO fix TT_Level size  possibly works
+		Levels->CRC = Crc16((uint8_t *) (Levels), offsetof(TT_Level, CRC));
 
 		Params->MeasTime = 20;
 		Params->Mode = 0;
@@ -532,8 +538,9 @@ void Set_TTDefaultParams(uint8_t MezNum)
 		Params->MaxD = 20;
 		Params->MinF = 0;
 		Params->MaxF = 100;
+		Params->ExtK = 0;
 
-		Params->CRC = Crc16((uint8_t *) (Params), offsetof(TT_Param, CRC)); //TODO fix TT_Param size  possibly works
+		Params->CRC = Crc16((uint8_t *) (Params), offsetof(TT_Param, CRC));
 
 		WriteTTCoeffs(MezNum, i, Coeffs);
 		WriteTTLevels(MezNum, i, Levels);
