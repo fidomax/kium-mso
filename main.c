@@ -246,6 +246,12 @@ void CanHandler(void *p)
 								case 0:
 									Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].CountTI = Recieve_Message.data_low_reg;
 									break;
+								case 2:
+									Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Params.CoeFf= *((float *) &(Recieve_Message.data_low_reg));
+									Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16(
+											(uint8_t *) &(Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Params), offsetof(TI_Param, CRC));
+									WriteTIParams(Channel_Num / 4, Channel_Num % 4, &Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Params);
+									break;
 							}
 							break;
 						case identifier_TR:
@@ -418,6 +424,14 @@ void CanHandler(void *p)
 							switch (Param) {
 								case 0:
 									Send_Message.data_low_reg = Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].CountTI;
+									Send_Message.data_high_reg = 0;
+									break;
+								case 1:
+									*((float *) &(Send_Message.data_low_reg))= Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Value;
+									Send_Message.data_high_reg = 0;
+									break;
+								case 2:
+									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].Params.CoeFf;
 									Send_Message.data_high_reg = 0;
 									break;
 							}
@@ -810,7 +824,16 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TI:
 				GreenLeds |= LED_ON(i);
-				xTaskCreate(Mez_TI_Task, "MEZ_TI_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
+				if ((xTWISemaphore != NULL )) {
+					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
+						if (Get_TIParams(&Mezonin_TI[i]) == 0) {
+							xTaskCreate(Mez_TI_Task, "MEZ_TI_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
+						} else {
+							RedLeds |= LED_PWM0(i);
+						}
+						xSemaphoreGive(xTWISemaphore);
+					}
+				}
 				break;
 
 			case Mez_NOT:
@@ -873,6 +896,12 @@ void MezSetDefaultConfig(void * p)
 			Set_TTDefaultParams(1);
 			Set_TTDefaultParams(2);
 			Set_TTDefaultParams(3);
+			break;
+		case Mez_TI:
+			Set_TIDefaultParams(0);
+			Set_TIDefaultParams(1);
+			Set_TIDefaultParams(2);
+			Set_TIDefaultParams(3);
 			break;
 	}
 	xTaskCreate(LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);

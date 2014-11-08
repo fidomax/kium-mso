@@ -37,6 +37,7 @@ extern TU_Value Mezonin_TU[4];
 void Mez_TU_init(mezonin *MezStruct);
 void WriteTUParams(uint8_t MezNum, int ChannelNumber, TU_Param* Params);
 void Set_TUDefaultParams(uint8_t MezNum);
+uint32_t Get_TUParams(TU_Value *TU_temp);
 void TUTickHandler(void);
 void Mez_TU_handler(mezonin *MezStruct);
 #endif /* TU_H_ */
