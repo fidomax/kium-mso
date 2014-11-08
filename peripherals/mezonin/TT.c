@@ -185,6 +185,12 @@ void SetTTTime(TT_Channel *Channel)
 	Channel->Max_Value = Channel->Coeffs.k_max * Channel->Params.MeasTime + Channel->Coeffs.p_max;
 }
 //------------------------------------------------------------------------------
+void SetTTExtK(TT_Channel *Channel)
+{
+	Channel->MinFK = Channel->Params.MinF - (Channel->Params.MaxF - Channel->Params.MinF) * Channel->Params.ExtK;
+	Channel->MaxFK = Channel->Params.MaxF + (Channel->Params.MaxF - Channel->Params.MinF) * Channel->Params.ExtK;
+}
+//------------------------------------------------------------------------------
 void CalibTTMin(mezonin *MezStruct)
 {
 	TT_Channel * Channel;
@@ -297,6 +303,7 @@ void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
 		case TT_mode_mask:
 			if (tt_channel->State != STATE_MASK) {
 				tt_channel->State = STATE_MASK; // выключен
+				SaveTTConfig(MezStruct->Mez_ID - 1,MezStruct->ActiveChannel - 1);
 				SendCanMessage(MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, (MezStruct->Mez_ID - 1)*4 + MezStruct->ActiveChannel -1 , ParamFV), *((uint32_t *) &tt_channel->Value), tt_channel->State);
 			}
 			break;
@@ -432,6 +439,7 @@ uint32_t Get_TTParams(TT_Value *TT_temp)
 		temp_CRC = Crc16(DataRecieve, offsetof(TT_Param, CRC)); //TODO fix TT_Param size possibly works
 		if (temp_CRC == ((TT_Param *) DataRecieve)->CRC) {
 			TT_temp->Channel[i].Params = *(TT_Param *) DataRecieve;
+			SetTTExtK(&TT_temp->Channel[i]);
 		} else {
 			return 1;
 		}

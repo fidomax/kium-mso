@@ -377,6 +377,10 @@ void CanHandler(void *p)
 								case ParamMaxFV:
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MaxF = *((float *) &(Recieve_Message.data_low_reg));
 									break;
+								case ParamExtK:
+									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.ExtK = *((float *) &(Recieve_Message.data_low_reg));
+									SetTTExtK(&(Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4]));
+									break;
 							}
 							break;
 						case identifier_ParamTC:
@@ -485,6 +489,10 @@ void CanHandler(void *p)
 									break;
 								case ParamMaxFV:
 									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.MaxF;
+									Send_Message.data_high_reg = 0;
+									break;
+								case ParamExtK:
+									*((float *) &(Send_Message.data_low_reg)) = Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.ExtK;
 									Send_Message.data_high_reg = 0;
 									break;
 							}

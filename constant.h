@@ -41,6 +41,7 @@
 #define ParamMaxD			((unsigned int)	0x4)	// максимум датчика
 #define ParamMinFV			((unsigned int)	0x5)	// минимум ФВ
 #define ParamMaxFV			((unsigned int)	0x6)	// максимум ФВ
+#define ParamExtK			((unsigned int)	0x7)	// коэффициент расширения диапазона ФВ
 //#define ParamFV				((unsigned int) 0x0)	// параметр для физической величины
 //#define ParamTC				((unsigned int) 0x0)	// параметр для значения ТС
 #define ParamKmin			((unsigned int) 0x1)	// Кмин

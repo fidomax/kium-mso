@@ -34,12 +34,6 @@ typedef struct _TT_Param
 {
 	uint32_t MeasTime;	// время измерения
 	uint32_t Mode;		// режим работы канала
-	/*	float 					k_min;		// коэффициент для вычисления минимального значения
-	 float 					p_min;		// смещение для вычисления минимального значения
-	 float 					k_max;		// коэффициент для вычисления максимального значения
-	 float 					p_max;		// смещение для вычисления максимального значения
-	 float					Sense;		// чувствительность
-	 */
 	float MinD;		// значение минимума (например 0..20 это 0, в 4..20 это 4)
 	float MaxD;	// значение максимума (например 0..20 это 20, в 4..20 это 20)
 	float MinF;		// значение минимума физической величины
@@ -62,8 +56,8 @@ typedef struct _TT_Channel
 	TT_Level Levels;		// пороги из EEPROM
 	uint32_t Min_Value;  // значение минимума для расчета
 	uint32_t Max_Value;	// значение максимума для расчета
-//  uint32_t			CRC;		// контрольная сумма
-// возможно будет дополняться
+	float MinFK;		// значение минимума физической величины
+	float MaxFK;		// значение максимума физической величины
 } TT_Channel;
 //---------------определение типа для ТТ (тип mezonin)------------------
 typedef struct _TT_Value
@@ -81,6 +75,7 @@ uint32_t Get_TTCoeffs(TT_Value *TT_temp);
 uint32_t Get_TTLevels(TT_Value *TT_temp);
 void Set_TTDefaultParams(uint8_t MezNum);
 void SetTTTime(TT_Channel *Channel);
+void SetTTExtK(TT_Channel *Channel);
 void SaveTTConfig(uint8_t MezNum, int ChannelNumber);
 
 void WriteTTCoeffs(uint8_t MezNum, int ChannelNumber, TT_Coeff* Coeffs);
