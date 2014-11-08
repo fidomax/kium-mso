@@ -19,7 +19,7 @@ typedef struct _TI_Param
 //---------------структура канала ТI (тип mezonin)----------------------
 typedef struct _TI_Channel
 {
-	uint32_t Value; 		// счетчик ФВ
+	float Value; 		// счетчик ФВ
 	uint8_t State;  	// состояние
 	uint32_t CountTI;	// счетчик импульсов
 	TI_Param Params;		// параметры из EEPROM
@@ -37,5 +37,8 @@ typedef struct _TI_Value
 void Mez_TI_init(mezonin *MezStruct);
 void TIValueHandler (Mez_Value *Mez_V);
 void Mez_TI_handler(mezonin *MezStruct);
+void WriteTIParams(uint8_t MezNum, int ChannelNumber, TI_Param* Params);
+uint32_t Get_TIParams(TI_Value *TI_temp);
+void Set_TIDefaultParams(uint8_t MezNum);
 extern TI_Value Mezonin_TI[4];
 #endif /* TI_H_ */
