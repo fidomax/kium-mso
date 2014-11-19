@@ -1,10 +1,7 @@
 #define MSO_MODE_WORK 0b00
 #define MSO_MODE_MEZ_INIT 0b11
 ///------------------------------------------------------------------------------
-//         For CAN identifier
-#define CAN_MIDE        (0x1 << 29) // (CAN_MB) Identifier Version
 
-#define MAKE_CAN_ID(proirity, type, MSO, channel, param) (AT91C_CAN_MIDE | proirity << 26| type << 18 | MSO << 10 | channel << 4 | param)
 
 //------------------------------------------------------------------------------
 //		   Приоритет по виду запрашиваемых данных

@@ -119,10 +119,13 @@ THUMB_SOURCE= \
 		pwmc.c \
 		math.c \
 		spi.c \
+		protocol.c \
 		mezonin.c \
+		MSO.c \
 		TI.c \
 		TU.c \
 		TT.c \
+		TC.c \
 		MSO_functions.c		
 
 ARM_SOURCE= \

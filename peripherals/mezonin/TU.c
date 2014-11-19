@@ -29,7 +29,7 @@ void Mez_TU_handler(mezonin *MezStruct)
 		if (MezStruct->TUQueue != 0) {
 			if (xQueueReceive(MezStruct->TUQueue, &Real_TU, portMAX_DELAY)) {
 				uint32_t ID;
-				ID = MAKE_CAN_ID(priority_N, identifier_TU, MSO_Address, Real_TU.ID*4 + Real_TU.Channel, ParamTU);
+				ID = MAKE_MSG_ID(priority_N, identifier_TU, (Real_TU.ID*4 + Real_TU.Channel), ParamTU);
 				switch (Real_TU.ui32Value) {
 					case TUCommandOn:
 						Mezonin_TU[Real_TU.ID].Channel[Real_TU.Channel].TickCount = Mezonin_TU[Real_TU.ID].Channel[Real_TU.Channel].Params.TimeTU;

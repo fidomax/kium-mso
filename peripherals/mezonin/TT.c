@@ -7,14 +7,11 @@
 #include "mezonin.h"
 #include "global.h"
 #include "constant.h"
-#include "../pio/pio_config.h"
 #include "../pwmc/pwmc.h"
 #include "../tc/tc.h"
 #include "../aic/aic.h"
 #include <math.h>
-#include "MSO_functions/MSO_functions.h"
-#include "FreeRTOS.h"
-#include "task.h"
+
 uint32_t overflow[4];		// массив значений перполнений счетчика TT
 uint32_t Min20[4][4], Min100[4], Max20[4], Max100[4];
 //uint32_t VVV[4][4];
@@ -101,40 +98,50 @@ void TTValueHandler(Mez_Value *Mez_V)
 	uint32_t ID;
 	uint32_t Count;
 	ChannelNumber = Mez_V->ID * 4 + Mez_V->Channel;
-	ID = MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, ChannelNumber, ParamFV);
+	ID = MAKE_MSG_ID(priority_N, identifier_TT, ChannelNumber, ParamFV);
 	Count = Mez_V->ui32Value; // сколько намотал счетчик
 	TT_Channel * tt_channel = &Mezonin_TT[Mez_V->ID].Channel[Mez_V->Channel];
 	tt_channel->Value = Mez_TT_Frequency(Count, Mez_V->Channel, Mez_V->ID);
 
 	// анализировать состояние
-	if ((tt_channel->Value > tt_channel->Levels.Max_W_Level) || (tt_channel->Value < tt_channel->Levels.Min_W_Level)) {
-		if ((tt_channel->Value > tt_channel->Levels.Max_A_Level) || (tt_channel->Value < tt_channel->Levels.Min_A_Level)) {
-			if (tt_channel->State != STATE_ALARM) {
-				tt_channel->State = STATE_ALARM; // аварийный порог
+	if (tt_channel->Params.Mode == TT_mode_mask) {
+		if (tt_channel->State != STATE_MASK) {
+			tt_channel->State = STATE_MASK; // выключен
+			tt_channel->OldValue = tt_channel->Value;
+			SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+		}
+	} else {
+		if ((tt_channel->Value > tt_channel->MaxFK) || (tt_channel->Value < tt_channel->MinFK)) {
+			if (tt_channel->State != STATE_FAULT) {
+				tt_channel->State = STATE_FAULT; // аварийный порог
 				tt_channel->OldValue = tt_channel->Value;
 				SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
 			}
 		} else {
-			if (tt_channel->State != STATE_WARNING) {
-				tt_channel->State = STATE_WARNING; // предупредительный порог
-				tt_channel->OldValue = tt_channel->Value;
-				SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+			if ((tt_channel->Value > tt_channel->Levels.Max_W_Level) || (tt_channel->Value < tt_channel->Levels.Min_W_Level)) {
+				if ((tt_channel->Value > tt_channel->Levels.Max_A_Level) || (tt_channel->Value < tt_channel->Levels.Min_A_Level)) {
+					if (tt_channel->State != STATE_ALARM) {
+						tt_channel->State = STATE_ALARM; // аварийный порог
+						tt_channel->OldValue = tt_channel->Value;
+						SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+					}
+				} else {
+					if (tt_channel->State != STATE_WARNING) {
+						tt_channel->State = STATE_WARNING; // предупредительный порог
+						tt_channel->OldValue = tt_channel->Value;
+						SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+					}
+				}
+			} else {
+				if (tt_channel->State != STATE_OK) {
+					tt_channel->State = STATE_OK;
+					tt_channel->OldValue = tt_channel->Value;
+					SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+				}
 			}
 		}
-	} else {
-		if (tt_channel->State != STATE_OK) {
-			tt_channel->State = STATE_OK;
-			tt_channel->OldValue = tt_channel->Value;
-			SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-		}
-	}
-	if (tt_channel->Params.Mode == 0x04) {
-		if (tt_channel->State != STATE_MASK) {
-			tt_channel->State = STATE_MASK; // выключен
-			SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-		}
-	}
 
+	}
 	if (fabs(tt_channel->Value - tt_channel->OldValue) > tt_channel->Levels.Sense)
 
 	{
@@ -159,7 +166,7 @@ void MeasureTT(mezonin *MezStruct)
 	MezStruct->Start = 1;
 	MezStruct->TickCount = Mezonin_TT[MezStruct->Mez_ID - 1].Channel[MezStruct->ActiveChannel - 1].Params.MeasTime + 1;
 
-	SaveTTConfig(MezStruct->Mez_ID - 1,MezStruct->ActiveChannel - 1);
+	SaveTTConfig(MezStruct->Mez_ID - 1, MezStruct->ActiveChannel - 1);
 
 	xSemaphoreTake(MezStruct->xSemaphore, portMAX_DELAY);
 	TC_Stop(MezStruct->TC_ptr); //остановка счетчика TC1 (2MDATA)
@@ -303,8 +310,9 @@ void Mez_TT_handler(mezonin *MezStruct/*, TT_Value *Mez_TT_temp*/)
 		case TT_mode_mask:
 			if (tt_channel->State != STATE_MASK) {
 				tt_channel->State = STATE_MASK; // выключен
-				SaveTTConfig(MezStruct->Mez_ID - 1,MezStruct->ActiveChannel - 1);
-				SendCanMessage(MAKE_CAN_ID(priority_N, identifier_TT, MSO_Address, (MezStruct->Mez_ID - 1)*4 + MezStruct->ActiveChannel -1 , ParamFV), *((uint32_t *) &tt_channel->Value), tt_channel->State);
+				SaveTTConfig(MezStruct->Mez_ID - 1, MezStruct->ActiveChannel - 1);
+				SendCanMessage(MAKE_MSG_ID(priority_N, identifier_TT, (MezStruct->Mez_ID - 1) * 4 + MezStruct->ActiveChannel - 1, ParamFV),
+						*((uint32_t *) &tt_channel->Value), tt_channel->State);
 			}
 			break;
 	}
@@ -377,7 +385,7 @@ void Mez_TT_Calib(mezonin *MezStruct, uint32_t Channel_Num, uint32_t flag/*, TT_
 uint32_t Get_TTLevels(TT_Value *TT_temp)
 {
 	uint32_t i, a;
-	uint8_t DataRecieve[ sizeof(TT_Level)];
+	uint8_t DataRecieve[sizeof(TT_Level)];
 	uint16_t temp_CRC;
 
 	for (i = 0; i < 4; i++) {
@@ -497,18 +505,18 @@ void SaveTTConfig(uint8_t MezNum, int ChannelNumber)
 //	Coeffs = &Mezonin_TT[MezNum].Channel[ChannelNumber].Coeffs;
 	Levels = &Mezonin_TT[MezNum].Channel[ChannelNumber].Levels;
 	Params = &Mezonin_TT[MezNum].Channel[ChannelNumber].Params;
-/*	CRC = Crc16((uint8_t *) (Coeffs), offsetof(TT_Coeff, CRC));
-	if (Coeffs->CRC != CRC){
-		Coeffs->CRC = CRC;
-		WriteTTCoeffs(MezNum, ChannelNumber, Coeffs);
-	}*/
+	/*	CRC = Crc16((uint8_t *) (Coeffs), offsetof(TT_Coeff, CRC));
+	 if (Coeffs->CRC != CRC){
+	 Coeffs->CRC = CRC;
+	 WriteTTCoeffs(MezNum, ChannelNumber, Coeffs);
+	 }*/
 	CRC = Crc16((uint8_t *) (Levels), offsetof(TT_Level, CRC));
-	if (Levels->CRC != CRC){
+	if (Levels->CRC != CRC) {
 		Levels->CRC = CRC;
 		WriteTTLevels(MezNum, ChannelNumber, Levels);
 	}
 	CRC = Crc16((uint8_t *) (Params), offsetof(TT_Param, CRC));
-	if (Params->CRC != CRC){
+	if (Params->CRC != CRC) {
 		Params->CRC = CRC;
 		WriteTTParams(MezNum, ChannelNumber, Params);
 	}

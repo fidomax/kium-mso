@@ -71,28 +71,6 @@
  these demo application projects then ensure Supervisor mode is used.
  */
 
-/*
- * This demo includes a (basic) USB mouse driver and a WEB server.  It is
- * targeted for the AT91SAM7X EK prototyping board which includes a small
- * joystick to provide the mouse inputs.  The WEB interface provides some basic
- * interactivity through the use of a check box to turn on and off an LED.
- *
- * main() creates the WEB server, USB, and a set of the standard demo tasks
- * before starting the scheduler.  See the online FreeRTOS.org documentation 
- * for more information on the standard demo tasks.  
- *
- * LEDs D1 to D3 are controlled by the standard 'flash' tasks - each will 
- * toggle at a different fixed frequency.
- *
- * A tick hook function is used to monitor the standard demo tasks - with LED
- * D4 being used to indicate the system status.  D4 toggling every 5 seconds
- * indicates that all the standard demo tasks are executing without error.  The
- * toggle rate increasing to 500ms is indicative of an error having been found
- * in at least one demo task.
- *
- * See the online documentation page that accompanies this demo for full setup
- * and usage information.
- */
 
 /* Standard includes. */
 
@@ -104,6 +82,7 @@
 /* Demo application includes. */
 #include "ParTest/partest.h"
 #include "constant.h"
+#include "MSO.h"
 
 #include "peripherals/twi/twi.h"
 #include "peripherals/PCA9532/PCA9532.h"
@@ -130,7 +109,7 @@ extern void CAN1_ISR(void) __attribute__((naked));
 #define mainUIP_TASK_STACK_SIZE_MED		( configMINIMAL_STACK_SIZE * 3 )
 #define mainUIP_TASK_STACK_SIZE_MIN		( configMINIMAL_STACK_SIZE )
 
-volatile uint8_t MSO_Address;
+//volatile uint8_t MSO.Address;
 
 SemaphoreHandle_t xTWISemaphore;
 SemaphoreHandle_t xSPISemaphore;
@@ -150,6 +129,7 @@ TC_Value Mezonin_TC[4];
 TU_Value Mezonin_TU[4];
 TR_Value Mezonin_TR[4];
 TI_Value Mezonin_TI[4];
+
 
 int32_t tt[100];
 int32_t c = 0;
@@ -199,10 +179,10 @@ void CanHandler(void *p)
 
 	// Initialize the xLastWakeTime variable with the current time.
 	xLastWakeTime = xTaskGetTickCount();
-//	CAN_Init(1000, AT91C_CAN_MIDE | MSO_Address << PosAdress);
-	InitCanRX(AT91C_CAN_MIDE | MSO_Address << PosAdress);
+//	CAN_Init(1000, AT91C_CAN_MIDE | MSO.Address << PosAdress);
+	InitCanRX(AT91C_CAN_MIDE | MSO.Address << PosAdress);
 	//Setup receiving MailBox by MSO address
-//	identifier = AT91C_CAN_MIDE | MSO_Address << PosAdress;
+//	identifier = AT91C_CAN_MIDE | MSO.Address << PosAdress;
 	for (;;) {
 		// Wait for the next cycle.
 		if (xQueueReceive(xCanQueue, &Recieve_Message, portMAX_DELAY)) { // We have CAN message
@@ -238,7 +218,7 @@ void CanHandler(void *p)
 					break;
 
 				case priority_W:
-					Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress
+					Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO.Address << PosAdress
 							| Channel_Num << PosChannel | Param;
 					switch (Type) {
 						case identifier_TI:
@@ -413,9 +393,9 @@ void CanHandler(void *p)
 					break;
 
 				case priority_R: {
-					Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress
+					Send_Message.real_Identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO.Address << PosAdress
 							| Channel_Num << PosChannel | Param; // составление идентификатора для посылки
-					//identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO_Address << PosAdress | Channel_Num << PosChannel | Param; // составление идентификатора для посылки
+					//identifier = AT91C_CAN_MIDE | priority_N << PosPriority | Type << PosType | MSO.Address << PosAdress | Channel_Num << PosChannel | Param; // составление идентификатора для посылки
 //					canID = Recieve_Message.canID;	// номер CAN0
 //					FillCanPacket(&canTransfer1, canID, 3, AT91C_CAN_MOT_TX | AT91C_CAN_PRIOR, 0x00000000, identifier); // Заполнение структуры CanTransfer с расширенным идентификатором
 
@@ -730,7 +710,7 @@ void MezRec(void *p) // распознование типа мезонина
 	signed char a;
 	if (xTWISemaphore != NULL) {
 		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
-			MSO_Address = Switch8_Read(); // Определение адреса МСО
+			MSO.Address = Switch8_Read(); // Определение адреса МСО
 		}
 		xSemaphoreGive(xTWISemaphore);
 	}
@@ -940,7 +920,7 @@ int main(void)
 	switch (Switch2_Read()) {
 		case MSO_MODE_WORK:
 			Freq = 1000;
-			//CAN_Init(1000, AT91C_CAN_MIDE | MSO_Address << PosAdress);
+			//CAN_Init(1000, AT91C_CAN_MIDE | MSO.Address << PosAdress);
 			xTaskCreate(LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);
 			xTaskCreate(MezRec, "Recognition", mainUIP_TASK_STACK_SIZE_MED, &xMezHandle, mainUIP_PRIORITY, &xMezHandle);
 			xTaskCreate(MezValue, "Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);

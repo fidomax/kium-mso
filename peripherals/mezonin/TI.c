@@ -8,7 +8,7 @@
 #include "global.h"
 #include "../spi/spi.h"
 #include "constant.h"
-
+#include "MSO_functions/MSO_functions.h"
 //------------------------------------------------------------------------------
 void Mez_TI_init(mezonin *MezStruct)
 {
@@ -60,8 +60,8 @@ void TIValueHandler (Mez_Value *Mez_V)
 	uint32_t ChannelNumber;
 	uint32_t ID,ID1;
 	ChannelNumber = Mez_V->ID * 4 + Mez_V->Channel;
-	ID = MAKE_CAN_ID(priority_N, identifier_TI, MSO_Address, ChannelNumber, ParamTI);
-	ID1 = MAKE_CAN_ID(priority_N, identifier_TI, MSO_Address, ChannelNumber, 1);
+	ID = MAKE_MSG_ID(priority_N, identifier_TI, ChannelNumber, ParamTI);
+	ID1 = MAKE_MSG_ID(priority_N, identifier_TI, ChannelNumber, 1);
 	TI_Channel * ti_channel = &Mezonin_TI[Mez_V->ID].Channel[Mez_V->Channel];
 
 	if (Mez_V->ui32Value ) { // если есть импульсы

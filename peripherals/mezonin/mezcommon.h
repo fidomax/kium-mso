@@ -8,6 +8,7 @@
 #ifndef MEZCOMMON_H_
 #define MEZCOMMON_H_
 #include "boards/MSO_board.h"
+#include "protocol.h"
 //---------------определение типа для физической величины ТТ ------------------
 typedef struct _Mez_Value
 {
