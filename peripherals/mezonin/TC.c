@@ -35,7 +35,7 @@ void TCValueHandler (Mez_Value *Mez_V)
 
 		tc_channel->Value = Mez_V->ui32Value & 1;
 		tc_channel->State = Mez_V->ui32Value >> 1; // доработать со сдвигами
-		SendCanMessage(ID, tc_channel->Value, tc_channel->State);
+		if(MSO.Mode==MSO_MODE_ON) SendCanMessage(ID, tc_channel->Value, tc_channel->State);
 	}
 
 

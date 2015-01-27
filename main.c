@@ -137,6 +137,9 @@ int32_t c = 0;
 uint32_t TY_state = 0x00;
 uint32_t Prev_SPI_RDR_value = 0x00;
 uint32_t Cur_SPI_RDR_value = 0x00;
+
+unsigned char RedLeds;
+unsigned char GreenLeds;
 /*-----------------------------------------------------------*/
 
 static void prvSetupHardware(void);
@@ -196,7 +199,7 @@ void CanHandler(void *p)
 
 			switch (Priority) {
 				case priority_V:
-
+					if(MSO.Mode==MSO_MODE_OFF) break;
 //					Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = mode_calib;
 					switch (Param) {
 						case ParamCalib0:
@@ -222,6 +225,7 @@ void CanHandler(void *p)
 							| Channel_Num << PosChannel | Param;
 					switch (Type) {
 						case identifier_TI:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case 0:
 									Mezonin_TI[Channel_Num / 4].Channel[Channel_Num % 4].CountTI = Recieve_Message.data_low_reg;
@@ -235,6 +239,7 @@ void CanHandler(void *p)
 							}
 							break;
 						case identifier_TR:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case 0:
 									test23.ID = Channel_Num / 4;
@@ -249,6 +254,7 @@ void CanHandler(void *p)
 							}
 							break;
 						case identifier_TU:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case 0:
 									test23.ID = Channel_Num / 4;
@@ -263,6 +269,7 @@ void CanHandler(void *p)
 							}
 							break;
 						case identifier_ParamTU:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case 2:
 									Mezonin_TU[Channel_Num / 4].Channel[Channel_Num % 4].Params.TimeTU = Recieve_Message.data_low_reg;
@@ -277,6 +284,7 @@ void CanHandler(void *p)
 							break;
 
 						case identifier_Level:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case ParamWrite: {
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Levels.CRC = Crc16(
@@ -304,6 +312,7 @@ void CanHandler(void *p)
 							break;
 
 						case identifier_Coeff:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case ParamWrite: {
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Coeffs.CRC = Crc16(
@@ -336,6 +345,7 @@ void CanHandler(void *p)
 							break;
 
 						case identifier_ParamTT:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case ParamWrite: {
 									Mezonin_TT[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16(
@@ -370,6 +380,7 @@ void CanHandler(void *p)
 							}
 							break;
 						case identifier_ParamTC:
+							if(MSO.Mode==MSO_MODE_OFF) break;
 							switch (Param) {
 								case ParamWrite: // запись в ЕЕПРОМ!!!!!!!
 									Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Params.CRC = Crc16(
@@ -386,6 +397,13 @@ void CanHandler(void *p)
 									break;
 								case ParamMode:
 									Mezonin_TC[Channel_Num / 4].Channel[Channel_Num % 4].Params.Mode = Recieve_Message.data_low_reg;
+									break;
+							}
+							break;
+						case identifier_ModeMSO:
+							switch (Param) {
+								case 0:
+									MSO.Mode = Recieve_Message.data_low_reg;
 									break;
 							}
 							break;
@@ -537,7 +555,14 @@ void CanHandler(void *p)
 									break;
 							}
 							break;
-
+						case identifier_ModeMSO:
+							switch(Param){
+								case 0:
+									Send_Message.data_low_reg = MSO.Mode;
+									Send_Message.data_high_reg = 0;
+									break;
+							}
+							break;
 					}
 					CAN_Write(&Send_Message);
 				}
@@ -662,7 +687,6 @@ void Mez_TI_Task(void *p)
 
 void MezValue(void *p)
 {
-
 	Mez_Value Mez_V;
 	InitCanTX();
 
@@ -702,10 +726,51 @@ void MezValue(void *p)
 	}
 }
 //------------------------------------------//*//------------------------------------------------
+void Work_task(void *p)
+{
+	int state=MSO_MODE_OFF;
+	TickType_t xLastWakeTime;
+	xLastWakeTime = xTaskGetTickCount();
+	for (;;) {
+		if((MSO.Mode==MSO_MODE_ON)&&(state==MSO_MODE_OFF)){
+			if (xTWISemaphore != NULL) {
+				if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
+					TWI_StartWrite(AT91C_BASE_TWI, (unsigned char) PCA9532_address, (PCA9532_LS0 | PCA9532_AUTO_INCR), 1);
+					TWI_WriteByte(AT91C_BASE_TWI, RedLeds);
+					Wait_THR_Ready();
+					TWI_WriteByte(AT91C_BASE_TWI, GreenLeds);
+					Wait_THR_Ready();
+					TWI_Stop(AT91C_BASE_TWI);
+					Wait_TXCOMP();
+					AT91C_BASE_TWI->TWI_RHR;
+					xSemaphoreGive(xTWISemaphore);
+				}
+			}
+			state=MSO_MODE_ON;
+		} else if((MSO.Mode==MSO_MODE_OFF)&&(state==MSO_MODE_ON)){
+			if (xTWISemaphore != NULL) {
+				if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
+					TWI_StartWrite(AT91C_BASE_TWI, (unsigned char) PCA9532_address, (PCA9532_LS0 | PCA9532_AUTO_INCR), 1);
+					TWI_WriteByte(AT91C_BASE_TWI, 0);//red leds off
+					Wait_THR_Ready();
+					TWI_WriteByte(AT91C_BASE_TWI, 0);//green leds off
+					Wait_THR_Ready();
+					TWI_Stop(AT91C_BASE_TWI);
+					Wait_TXCOMP();
+					AT91C_BASE_TWI->TWI_RHR;
+					xSemaphoreGive(xTWISemaphore);
+				}
+			}
+			state=MSO_MODE_OFF;
+		}
+	}
+	vTaskDelayUntil(&xLastWakeTime, 1000);
+}
+//------------------------------------------//*//------------------------------------------------
 void MezRec(void *p) // распознование типа мезонина
 {
-	unsigned char RedLeds = 0;
-	unsigned char GreenLeds = 0;
+	RedLeds = 0;
+	GreenLeds = 0;
 	int32_t i;
 	signed char a;
 	if (xTWISemaphore != NULL) {
@@ -825,20 +890,7 @@ void MezRec(void *p) // распознование типа мезонина
 				break;
 		}
 	}
-	if (xTWISemaphore != NULL) {
-		if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
-			TWI_StartWrite(AT91C_BASE_TWI, (unsigned char) PCA9532_address, (PCA9532_LS0 | PCA9532_AUTO_INCR), 1);
-			TWI_WriteByte(AT91C_BASE_TWI, RedLeds);
-			Wait_THR_Ready();
-			TWI_WriteByte(AT91C_BASE_TWI, GreenLeds);
-			Wait_THR_Ready();
-			TWI_Stop(AT91C_BASE_TWI);
-			Wait_TXCOMP();
-			AT91C_BASE_TWI->TWI_RHR;
-			xSemaphoreGive(xTWISemaphore);
-		}
-	}
-//	xTaskCreate(MezValue, "Value", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
+	xTaskCreate(Work_task, "Work_task", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
 	xTaskCreate(CanHandler, "CanHandler", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
 
 	vTaskDelete(*((TaskHandle_t *) p));
@@ -917,8 +969,9 @@ int main(void)
 	xMezQueue = xQueueCreate(32, sizeof(Mez_Value));
 	xMezTUQueue = xQueueCreate(16, sizeof(Mez_Value));
 	CAN_Init(1000);
-	switch (Switch2_Read()) {
-		case MSO_MODE_WORK:
+	MSO.Mode=Switch2_Read();
+	switch (MSO.Mode) {
+		case MSO_MODE_OFF:
 			Freq = 1000;
 			//CAN_Init(1000, AT91C_CAN_MIDE | MSO.Address << PosAdress);
 			xTaskCreate(LedBlinkTask, "LedBlink", mainUIP_TASK_STACK_SIZE_MIN, &Freq, mainUIP_PRIORITY, NULL);

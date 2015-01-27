@@ -1,4 +1,5 @@
-#define MSO_MODE_WORK 0b00
+#define MSO_MODE_OFF 0b00
+#define MSO_MODE_ON 0b01
 #define MSO_MODE_MEZ_INIT 0b11
 ///------------------------------------------------------------------------------
 
@@ -16,6 +17,7 @@
 #define identifier_ParamTT 	((unsigned int) 17)
 #define identifier_ParamTC	((unsigned int) 18)
 #define identifier_ParamTU	((unsigned int) 19)
+#define identifier_ModeMSO	((unsigned int) 20)
 #define identifier_ParamMEZ ((unsigned int) 255)
 //------------------------------------------------------------------------------
 //		   Базовый приоритет

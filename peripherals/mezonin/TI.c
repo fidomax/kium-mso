@@ -67,9 +67,11 @@ void TIValueHandler (Mez_Value *Mez_V)
 	if (Mez_V->ui32Value ) { // если есть импульсы
 
 		ti_channel->CountTI += Mez_V->ui32Value;
-		SendCanMessage(ID, ti_channel->CountTI,0);
 		ti_channel->Value=ti_channel->Params.CoeFf*ti_channel->CountTI;
-		SendCanMessage(ID1, *((uint32_t *) &ti_channel->Value),0);
+		if(MSO.Mode==MSO_MODE_ON) {
+			SendCanMessage(ID, ti_channel->CountTI,0);
+			SendCanMessage(ID1, *((uint32_t *) &ti_channel->Value),0);
+		}
 	}
 
 

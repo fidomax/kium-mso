@@ -6,7 +6,6 @@
  */
 #include "mezonin.h"
 #include "global.h"
-#include "constant.h"
 #include "../pwmc/pwmc.h"
 #include "../tc/tc.h"
 #include "../aic/aic.h"
@@ -102,51 +101,50 @@ void TTValueHandler(Mez_Value *Mez_V)
 	Count = Mez_V->ui32Value; // сколько намотал счетчик
 	TT_Channel * tt_channel = &Mezonin_TT[Mez_V->ID].Channel[Mez_V->Channel];
 	tt_channel->Value = Mez_TT_Frequency(Count, Mez_V->Channel, Mez_V->ID);
-
+	if(MSO.Mode==MSO_MODE_ON){
 	// анализировать состояние
-	if (tt_channel->Params.Mode == TT_mode_mask) {
-		if (tt_channel->State != STATE_MASK) {
-			tt_channel->State = STATE_MASK; // выключен
-			tt_channel->OldValue = tt_channel->Value;
-			SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-		}
-	} else {
-		if ((tt_channel->Value > tt_channel->MaxFK) || (tt_channel->Value < tt_channel->MinFK)) {
-			if (tt_channel->State != STATE_FAULT) {
-				tt_channel->State = STATE_FAULT; // аварийный порог
+		if (tt_channel->Params.Mode == TT_mode_mask) {
+			if (tt_channel->State != STATE_MASK) {
+				tt_channel->State = STATE_MASK; // выключен
 				tt_channel->OldValue = tt_channel->Value;
 				SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
 			}
 		} else {
-			if ((tt_channel->Value > tt_channel->Levels.Max_W_Level) || (tt_channel->Value < tt_channel->Levels.Min_W_Level)) {
-				if ((tt_channel->Value > tt_channel->Levels.Max_A_Level) || (tt_channel->Value < tt_channel->Levels.Min_A_Level)) {
-					if (tt_channel->State != STATE_ALARM) {
-						tt_channel->State = STATE_ALARM; // аварийный порог
-						tt_channel->OldValue = tt_channel->Value;
-						SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-					}
-				} else {
-					if (tt_channel->State != STATE_WARNING) {
-						tt_channel->State = STATE_WARNING; // предупредительный порог
-						tt_channel->OldValue = tt_channel->Value;
-						SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
-					}
-				}
-			} else {
-				if (tt_channel->State != STATE_OK) {
-					tt_channel->State = STATE_OK;
+			if ((tt_channel->Value > tt_channel->MaxFK) || (tt_channel->Value < tt_channel->MinFK)) {
+				if (tt_channel->State != STATE_FAULT) {
+					tt_channel->State = STATE_FAULT; // аварийный порог
 					tt_channel->OldValue = tt_channel->Value;
 					SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
 				}
+			} else {
+				if ((tt_channel->Value > tt_channel->Levels.Max_W_Level) || (tt_channel->Value < tt_channel->Levels.Min_W_Level)) {
+					if ((tt_channel->Value > tt_channel->Levels.Max_A_Level) || (tt_channel->Value < tt_channel->Levels.Min_A_Level)) {
+						if (tt_channel->State != STATE_ALARM) {
+							tt_channel->State = STATE_ALARM; // аварийный порог
+							tt_channel->OldValue = tt_channel->Value;
+							SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+						}
+					} else {
+						if (tt_channel->State != STATE_WARNING) {
+							tt_channel->State = STATE_WARNING; // предупредительный порог
+							tt_channel->OldValue = tt_channel->Value;
+							SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+						}
+					}
+				} else {
+					if (tt_channel->State != STATE_OK) {
+						tt_channel->State = STATE_OK;
+						tt_channel->OldValue = tt_channel->Value;
+						SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+					}
+				}
 			}
+
 		}
-
-	}
-	if (fabs(tt_channel->Value - tt_channel->OldValue) > tt_channel->Levels.Sense)
-
-	{
-		tt_channel->OldValue = tt_channel->Value;
-		SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+		if (fabs(tt_channel->Value - tt_channel->OldValue) > tt_channel->Levels.Sense) {
+			tt_channel->OldValue = tt_channel->Value;
+			SendCanMessage(ID, *((uint32_t *) &tt_channel->Value), tt_channel->State);
+		}
 	}
 }
 //------------------------------------------------------------------------------
