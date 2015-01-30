@@ -140,6 +140,7 @@ uint32_t Cur_SPI_RDR_value = 0x00;
 
 unsigned char RedLeds;
 unsigned char GreenLeds;
+unsigned char GreenBlink;
 /*-----------------------------------------------------------*/
 
 static void prvSetupHardware(void);
@@ -751,9 +752,9 @@ void Work_task(void *p)
 			if (xTWISemaphore != NULL) {
 				if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 					TWI_StartWrite(AT91C_BASE_TWI, (unsigned char) PCA9532_address, (PCA9532_LS0 | PCA9532_AUTO_INCR), 1);
-					TWI_WriteByte(AT91C_BASE_TWI, 0);//red leds off
+					TWI_WriteByte(AT91C_BASE_TWI, RedLeds);
 					Wait_THR_Ready();
-					TWI_WriteByte(AT91C_BASE_TWI, 0);//green leds off
+					TWI_WriteByte(AT91C_BASE_TWI, GreenBlink);
 					Wait_THR_Ready();
 					TWI_Stop(AT91C_BASE_TWI);
 					Wait_TXCOMP();
@@ -771,6 +772,7 @@ void MezRec(void *p) // распознование типа мезонина
 {
 	RedLeds = 0;
 	GreenLeds = 0;
+	GreenBlink = 0;
 	int32_t i;
 	signed char a;
 	if (xTWISemaphore != NULL) {
@@ -816,12 +818,13 @@ void MezRec(void *p) // распознование типа мезонина
 		switch (mezonin_my[i].Mez_Type) {
 			case Mez_TC:
 				GreenLeds |= LED_ON(i);
+				GreenBlink |= LED_PWM0(i);
 				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 						if (Get_TCParams(&Mezonin_TC[i]) == 0) {
 							xTaskCreate(Mez_TC_Task, "Mez_TC_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
-							RedLeds |= LED_PWM0(i);
+							RedLeds |= LED_PWM1(i);
 						}
 						xSemaphoreGive(xTWISemaphore);
 					}
@@ -830,12 +833,13 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TU:
 				GreenLeds |= LED_ON(i);
+				GreenBlink |= LED_PWM0(i);
 				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 						if (Get_TUParams(&Mezonin_TU[i]) == 0) {
 							xTaskCreate(Mez_TU_Task, "Mez_TU" + a, mainUIP_TASK_STACK_SIZE_MIN, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
-							RedLeds |= LED_PWM0(i);
+							RedLeds |= LED_PWM1(i);
 						}
 						xSemaphoreGive(xTWISemaphore);
 					}
@@ -844,12 +848,13 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TT:
 				GreenLeds |= LED_ON(i);
+				GreenBlink |= LED_PWM0(i);
 				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 						if ((Get_TTParams(&Mezonin_TT[i]) || Get_TTCoeffs(&Mezonin_TT[i]) || Get_TTLevels(&Mezonin_TT[i])) == 0) {
 							xTaskCreate(Mez_TT_Task, "MEZ_TT_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
-							RedLeds |= LED_PWM0(i);
+							RedLeds |= LED_PWM1(i);
 						}
 						xSemaphoreGive(xTWISemaphore);
 					}
@@ -859,6 +864,7 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TR:
 				GreenLeds |= LED_ON(i);
+				GreenBlink |= LED_PWM0(i);
 				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
 						xTaskCreate(Mez_TP_Task, "Mez_TP" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
@@ -869,12 +875,13 @@ void MezRec(void *p) // распознование типа мезонина
 
 			case Mez_TI:
 				GreenLeds |= LED_ON(i);
+				GreenBlink |= LED_PWM0(i);
 				if ((xTWISemaphore != NULL )) {
 					if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY) == pdTRUE) {
 						if (Get_TIParams(&Mezonin_TI[i]) == 0) {
 							xTaskCreate(Mez_TI_Task, "MEZ_TI_Task" + a, mainUIP_TASK_STACK_SIZE_MED, (void * )i, mainUIP_PRIORITY, NULL);
 						} else {
-							RedLeds |= LED_PWM0(i);
+							RedLeds |= LED_PWM1(i);
 						}
 						xSemaphoreGive(xTWISemaphore);
 					}
@@ -888,6 +895,19 @@ void MezRec(void *p) // распознование типа мезонина
 			default:
 				RedLeds |= LED_ON(i);
 				break;
+		}
+		if (xTWISemaphore != NULL) {
+			if (xSemaphoreTake( xTWISemaphore, portMAX_DELAY ) == pdTRUE) {
+				TWI_StartWrite(AT91C_BASE_TWI, (unsigned char) PCA9532_address, (PCA9532_LS0 | PCA9532_AUTO_INCR), 1);
+				TWI_WriteByte(AT91C_BASE_TWI, RedLeds);
+				Wait_THR_Ready();
+				TWI_WriteByte(AT91C_BASE_TWI, GreenBlink);
+				Wait_THR_Ready();
+				TWI_Stop(AT91C_BASE_TWI);
+				Wait_TXCOMP();
+				AT91C_BASE_TWI->TWI_RHR;
+				xSemaphoreGive(xTWISemaphore);
+			}
 		}
 	}
 	xTaskCreate(Work_task, "Work_task", mainUIP_TASK_STACK_SIZE_MED, NULL, mainUIP_PRIORITY, NULL);
