@@ -1,6 +1,7 @@
 #define MSO_MODE_OFF 0b00
 #define MSO_MODE_ON 0b01
 #define MSO_MODE_MEZ_INIT 0b11
+#define MSO_MODE_TEST 0b10
 ///------------------------------------------------------------------------------
 
 

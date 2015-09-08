@@ -390,7 +390,7 @@ unsigned char CAN_Write(Message *CanMessage)
 	AT91PS_CAN base_can;
 	unsigned int num = START_TX_MB;
 	AT91PS_CAN_MB mb_ptr;
-
+	TickType_t xTime = xTaskGetTickCount();
 
 	while (num) {
 		//vTaskDelay(1000);
@@ -416,8 +416,10 @@ unsigned char CAN_Write(Message *CanMessage)
 			}
 
 		}
-
-		//if (num) vTaskDelay(1000);
+		if (num) vTaskDelay(1);
+		if ((xTaskGetTickCount() - xTime) > 100) {
+			return CAN_STATUS_LOCKED;
+		}
 	}
 
 

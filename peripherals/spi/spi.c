@@ -122,7 +122,7 @@ void SPI_Write(AT91S_SPI *spi, unsigned int npcs, unsigned short data)
 	// Send data
 	while ((spi->SPI_SR & AT91C_SPI_TXEMPTY)== 0);
 	spi->SPI_TDR = data | SPI_PCS(npcs);
-	//while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
+//	while ((spi->SPI_SR & AT91C_SPI_TDRE) == 0);
 	while ((spi->SPI_SR & AT91C_SPI_TXEMPTY)== 0);
 }
 
