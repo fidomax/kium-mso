@@ -1151,6 +1151,71 @@ void TestLedFlash()
 }
 //------------------------------------------//*//------------------------------------------------
 #define   SendNumer     (unsigned int) 256
+
+void TestShowLeds()
+{
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_1) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_0);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_2) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_0);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_0);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_3) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_0);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_0);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_4) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_0);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_0);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_1) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_1);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_1);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_2) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_1);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_1);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_3) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_1);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_1);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_4) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_1);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_1);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & MDATA_1) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOA, I2CCSE_1);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, I2CCSE_1);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & MDATA_2) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOA, I2CCSE_2);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, I2CCSE_2);
+    }
+    if ((AT91C_BASE_PIOB->PIO_PDSR) & MDATA_3) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOA, I2CCSE_3);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, I2CCSE_3);
+    }
+    if ((AT91C_BASE_PIOA->PIO_PDSR) & MDATA_4) {
+        AT91F_PIO_SetOutput(AT91C_BASE_PIOA, I2CCSE_4);
+    } else {
+        AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, I2CCSE_4);
+    }
+}
+
 void TestSPI(void)
 {
     unsigned int SPI0_configuration, CS_configuration;
@@ -1165,8 +1230,10 @@ void TestSPI(void)
 
     SPI_Disable(AT91C_BASE_SPI0);
 
-    AT91F_PIO_CfgInput(AT91C_BASE_PIOB, OVF_1 | OVF_2 | OVF_3 | OVF_4 | BRK_1 | BRK_2 | BRK_3 | BRK_4);
-    AT91F_PIO_CfgOutput(AT91C_BASE_PIOA, I2CCSE_1 | I2CCSE_2 | I2CCSE_3 | I2CCSE_4);
+    AT91F_PIO_CfgInput(AT91C_BASE_PIOB, OVF_1 | OVF_2 | OVF_3 | OVF_4 | BRK_1 | BRK_2 | BRK_3 | BRK_4 | MDATA_1 | MDATA_2 | MDATA_3);
+    AT91F_PIO_CfgInput(AT91C_BASE_PIOA, MDATA_4);
+
+    AT91F_PIO_CfgOutput(AT91C_BASE_PIOA, I2CCSE_1 | I2CCSE_2 | I2CCSE_3 | I2CCSE_4 | FIN_1 | FIN_2 | FIN_3 | FIN_4);
     AT91F_PIO_CfgOutput(AT91C_BASE_PIOB, A1_0 | A1_1 | A2_0 | A2_1 | A3_0 | A3_1 | A4_0 | A4_1);
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, I2CCSE_1 | I2CCSE_2 | I2CCSE_3 | I2CCSE_4);
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0 | A1_1 | A2_0 | A2_1 | A3_0 | A3_1 | A4_0 | A4_1);
@@ -1175,267 +1242,67 @@ void TestSPI(void)
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, CS_1 | CS_2 | CS_3 | CS_4);
     AT91F_PIO_SetOutput(AT91C_BASE_PIOA, CS_1);
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_1);
-    }
-
-    vTaskDelay(200);
+    TestShowLeds();
+    vTaskDelay(400);
 
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, CS_1 | CS_2 | CS_3 | CS_4);
     AT91F_PIO_SetOutput(AT91C_BASE_PIOA, CS_2);
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0);
-    }
+    TestShowLeds();
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_1);
-    }
-
-    vTaskDelay(200);
+    vTaskDelay(400);
 
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, CS_1 | CS_2 | CS_3 | CS_4);
     AT91F_PIO_SetOutput(AT91C_BASE_PIOA, CS_3);
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0);
-    }
+    TestShowLeds();
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_1);
-    }
-
-    vTaskDelay(200);
+    vTaskDelay(400);
 
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, CS_1 | CS_2 | CS_3 | CS_4);
     AT91F_PIO_SetOutput(AT91C_BASE_PIOA, CS_4);
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0);
-    }
+    TestShowLeds();
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_1);
-    }
-
-    vTaskDelay(200);
-
+    vTaskDelay(400);
 
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, CS_1 | CS_2 | CS_3 | CS_4);
     AT91F_PIO_SetOutput(AT91C_BASE_PIOA, CLK);
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0);
-    }
+    TestShowLeds();
 
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & OVF_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_0);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_0);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_1) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A1_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_2) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A2_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A2_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_3) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A3_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A3_1);
-    }
-
-    if ((AT91C_BASE_PIOB->PIO_PDSR) & BRK_4) {
-        AT91F_PIO_SetOutput(AT91C_BASE_PIOB, A4_1);
-    } else {
-        AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A4_1);
-    }
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, CLK);
+
+    vTaskDelay(400);
+
+    AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, FIN_1 | FIN_2 | FIN_3 | FIN_4);
+    AT91F_PIO_SetOutput(AT91C_BASE_PIOA, FIN_1);
+
+    TestShowLeds();
+
+    vTaskDelay(400);
+
+    AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, FIN_1 | FIN_2 | FIN_3 | FIN_4);
+    AT91F_PIO_SetOutput(AT91C_BASE_PIOA, FIN_2);
+
+    TestShowLeds();
+
+    vTaskDelay(400);
+
+    AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, FIN_1 | FIN_2 | FIN_3 | FIN_4);
+    AT91F_PIO_SetOutput(AT91C_BASE_PIOA, FIN_3);
+
+    TestShowLeds();
+
+    vTaskDelay(400);
+
+    AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, FIN_1 | FIN_2 | FIN_3 | FIN_4);
+    AT91F_PIO_SetOutput(AT91C_BASE_PIOA, FIN_4);
+
+    TestShowLeds();
+
+    AT91F_PIO_ClearOutput(AT91C_BASE_PIOA, FIN_1 | FIN_2 | FIN_3 | FIN_4);
+
 
     AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, A1_0 | A2_0 | A3_0 | A4_0);
 
@@ -1484,15 +1351,15 @@ void TestCAN()
     for (int i = 0; i < 256; i++) {
         SendCanMessage(ID, i, i);
         if (xQueueReceive(xCanQueue, &Recieve_Message, 1000)) {
-           if ((Recieve_Message.data_low_reg == i)&&(Recieve_Message.data_high_reg == i)){
-               AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_0);
-               AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_1);
-           } else {
-               AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_0);
-               AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_1);
-               vTaskDelay(1000);
-               break;
-           }
+            if ((Recieve_Message.data_low_reg == i) && (Recieve_Message.data_high_reg == i)) {
+                AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_0);
+                AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_1);
+            } else {
+                AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_0);
+                AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_1);
+                vTaskDelay(1000);
+                break;
+            }
         } else {
             AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_0);
             AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_1);
@@ -1500,15 +1367,15 @@ void TestCAN()
             break;
         }
         if (xQueueReceive(xCanQueue, &Recieve_Message, 1000)) {
-           if ((Recieve_Message.data_low_reg == i)&&(Recieve_Message.data_high_reg == i)){
-               AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_0);
-               AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_1);
-           } else {
-               AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_0);
-               AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_1);
-               vTaskDelay(1000);
-               break;
-           }
+            if ((Recieve_Message.data_low_reg == i) && (Recieve_Message.data_high_reg == i)) {
+                AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_0);
+                AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_1);
+            } else {
+                AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_0);
+                AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_1);
+                vTaskDelay(1000);
+                break;
+            }
         } else {
             AT91F_PIO_ClearOutput(AT91C_BASE_PIOB, LED_0);
             AT91F_PIO_SetOutput(AT91C_BASE_PIOB, LED_1);
